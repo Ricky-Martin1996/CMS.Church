@@ -44,9 +44,24 @@ import type {
   MemberFilterDefinition,
   MemberListColumn,
   MemberListItem,
+  TagEntity,
 } from "@/domain/entities/member";
 import { DEFAULT_MEMBER_COLUMNS } from "@/domain/entities/member";
 import { MemberStatus } from "@/domain/enums/member";
+
+export type PeopleInitialData = {
+  members: MemberListItem[];
+  nextCursor: string | null;
+  total: number;
+  tags: TagEntity[];
+  savedFilters: Array<{
+    id: string;
+    name: string;
+    definition: MemberFilterDefinition;
+  }>;
+  columns: MemberListColumn[];
+  viewMode: "table" | "grid" | "card" | "compact";
+};
 
 function useDebounce<T>(value: T, delay = 300): T {
   const [debounced, setDebounced] = useState(value);
@@ -133,12 +148,20 @@ function renderCell(
   }
 }
 
-export function PeopleView() {
-  const [members, setMembers] = useState<MemberListItem[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+export function PeopleView({
+  initialData,
+}: {
+  initialData?: PeopleInitialData;
+}) {
+  const [members, setMembers] = useState<MemberListItem[]>(
+    initialData?.members ?? []
+  );
+  const [cursor, setCursor] = useState<string | null>(
+    initialData?.nextCursor ?? null
+  );
+  const [hasMore, setHasMore] = useState(!!initialData?.nextCursor);
+  const [total, setTotal] = useState(initialData?.total ?? 0);
+  const [loading, setLoading] = useState(!initialData);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,21 +169,20 @@ export function PeopleView() {
   const debouncedQuery = useDebounce(query);
   const [statuses, setStatuses] = useState<MemberStatus[]>([]);
   const [tagIds, setTagIds] = useState<string[]>([]);
-  const [tags, setTags] = useState<
-    import("@/domain/entities/member").TagEntity[]
-  >([]);
+  const [tags, setTags] = useState<TagEntity[]>(initialData?.tags ?? []);
   const [savedFilters, setSavedFilters] = useState<
     Array<{ id: string; name: string; definition: MemberFilterDefinition }>
-  >([]);
+  >(initialData?.savedFilters ?? []);
 
   const [viewMode, setViewMode] = useState<
     "table" | "grid" | "card" | "compact"
-  >("table");
+  >(initialData?.viewMode ?? "table");
   const [columns, setColumns] = useState<MemberListColumn[]>(
-    DEFAULT_MEMBER_COLUMNS
+    initialData?.columns ?? DEFAULT_MEMBER_COLUMNS
   );
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const [prefsLoaded, setPrefsLoaded] = useState(!!initialData);
+  const prefsHydratedRef = useRef(!!initialData);
 
   const [importPending, startImport] = useTransition();
   const [exportPending, startExport] = useTransition();
@@ -203,6 +225,10 @@ export function PeopleView() {
   );
 
   useEffect(() => {
+    if (initialData) {
+      prefsHydratedRef.current = true;
+      return;
+    }
     listTagsAction().then((res) => {
       if (res.ok) setTags(res.data);
     });
@@ -214,23 +240,44 @@ export function PeopleView() {
         setViewMode(res.data.viewMode as typeof viewMode);
         setColumns(res.data.columns);
       }
+      prefsHydratedRef.current = false;
       setPrefsLoaded(true);
+      queueMicrotask(() => {
+        prefsHydratedRef.current = true;
+      });
     });
-  }, []);
+  }, [initialData]);
+
+  const skipInitialReload = useRef(!!initialData);
 
   useEffect(() => {
     if (!prefsLoaded) return;
+    if (skipInitialReload.current) {
+      // SSR already provided the default (unfiltered) first page.
+      const hasActiveFilter =
+        Boolean(debouncedQuery.trim()) ||
+        statuses.length > 0 ||
+        tagIds.length > 0;
+      if (!hasActiveFilter) {
+        skipInitialReload.current = false;
+        return;
+      }
+      skipInitialReload.current = false;
+    }
     setSelected(new Set());
     loadMembers(null, false);
-  }, [filter, prefsLoaded, loadMembers]);
+  }, [filter, prefsLoaded, loadMembers, debouncedQuery, statuses, tagIds]);
 
   useEffect(() => {
-    if (!prefsLoaded) return;
-    savePreferencesAction({
-      columns,
-      viewMode,
-      density: "comfortable",
-    });
+    if (!prefsLoaded || !prefsHydratedRef.current) return;
+    const timer = window.setTimeout(() => {
+      void savePreferencesAction({
+        columns,
+        viewMode,
+        density: "comfortable",
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
   }, [columns, viewMode, prefsLoaded]);
 
   useEffect(() => {

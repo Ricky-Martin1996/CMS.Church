@@ -81,13 +81,24 @@ export function AttendanceDashboardView() {
 
   useEffect(() => {
     if (!dashboard?.activeLiveSession) return;
-    const interval = setInterval(async () => {
+    const tick = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       const statsRes = await getLiveStatsAction(
         dashboard.activeLiveSession!.id
       );
       if (statsRes.ok) setLiveStats(statsRes.data);
+    };
+    const interval = setInterval(() => {
+      void tick();
     }, 5000);
-    return () => clearInterval(interval);
+    const onVisibility = () => {
+      if (!document.hidden) void tick();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [dashboard?.activeLiveSession]);
 
   if (loading) return <LoadingState label="Loading attendance…" />;

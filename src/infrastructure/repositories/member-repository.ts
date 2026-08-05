@@ -287,9 +287,11 @@ export const memberRepository: MemberRepository = {
             visibility: { in: noteVisibilities },
           },
           orderBy: { createdAt: "desc" },
+          take: 40,
         },
         documents: {
           orderBy: { createdAt: "desc" },
+          take: 40,
         },
         attendance: {
           orderBy: { attendedAt: "desc" },
@@ -301,9 +303,11 @@ export const memberRepository: MemberRepository = {
         },
         prayers: {
           orderBy: { createdAt: "desc" },
+          take: 40,
         },
         volunteers: {
           orderBy: { startedAt: "desc" },
+          take: 40,
         },
         assignedLeader: {
           select: {

@@ -220,8 +220,19 @@ export function CheckInDeskView() {
 
   useEffect(() => {
     if (!sessionId || !isLive) return;
-    const interval = setInterval(() => refreshStats(sessionId), 5000);
-    return () => clearInterval(interval);
+    const tick = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      refreshStats(sessionId);
+    };
+    const interval = setInterval(tick, 5000);
+    const onVisibility = () => {
+      if (!document.hidden) refreshStats(sessionId);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [sessionId, isLive, refreshStats]);
 
   useEffect(() => {

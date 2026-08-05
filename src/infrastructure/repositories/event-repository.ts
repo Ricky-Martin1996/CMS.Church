@@ -319,14 +319,29 @@ async function logActivity(input: {
 }
 
 async function activeRegisteredPartySize(eventId: string) {
-  const rows = await prisma.eventRegistration.findMany({
+  const agg = await prisma.eventRegistration.aggregate({
     where: {
       eventId,
       status: { in: ["REGISTERED", "CHECKED_IN"] },
     },
-    select: { partySize: true },
+    _sum: { partySize: true },
   });
-  return rows.reduce((sum, r) => sum + r.partySize, 0);
+  return agg._sum.partySize ?? 0;
+}
+
+async function activeRegisteredPartySizes(eventIds: string[]) {
+  if (eventIds.length === 0) return new Map<string, number>();
+  const rows = await prisma.eventRegistration.groupBy({
+    by: ["eventId"],
+    where: {
+      eventId: { in: eventIds },
+      status: { in: ["REGISTERED", "CHECKED_IN"] },
+    },
+    _sum: { partySize: true },
+  });
+  return new Map(
+    rows.map((r) => [r.eventId, r._sum.partySize ?? 0] as const)
+  );
 }
 
 async function resolveVolunteerSummary(
@@ -410,6 +425,67 @@ async function resolveVolunteerSummary(
   if (scheduleEvent) {
     let needed = 0;
     let filled = 0;
+    const assignmentList = scheduleEvent.slots.flatMap((slot) =>
+      slot.assignments.map((assignment) => ({ slot, assignment }))
+    );
+
+    const volunteerIds = [
+      ...new Set(assignmentList.map((a) => a.assignment.volunteerId)),
+    ];
+
+    const overlapping =
+      volunteerIds.length === 0
+        ? []
+        : await prisma.scheduleAssignment.findMany({
+            where: {
+              organizationId,
+              volunteerId: { in: volunteerIds },
+              status: { in: ["ASSIGNED", "CONFIRMED"] },
+              id: {
+                notIn: assignmentList.map((a) => a.assignment.id),
+              },
+              slot: {
+                event: {
+                  startsAt: {
+                    lt: event.endsAt ?? addDays(event.startsAt, 1),
+                  },
+                  OR: [
+                    { endsAt: { gt: event.startsAt } },
+                    {
+                      endsAt: null,
+                      startsAt: { gte: startOfDay(event.startsAt) },
+                    },
+                  ],
+                },
+              },
+            },
+            include: {
+              slot: { include: { event: true } },
+            },
+          });
+
+    const conflictByVolunteer = new Map<string, (typeof overlapping)[number]>();
+    for (const other of overlapping) {
+      if (!conflictByVolunteer.has(other.volunteerId)) {
+        conflictByVolunteer.set(other.volunteerId, other);
+      }
+    }
+
+    const seenConflictVolunteers = new Set<string>();
+    for (const { assignment } of assignmentList) {
+      if (seenConflictVolunteers.has(assignment.volunteerId)) continue;
+      const other = conflictByVolunteer.get(assignment.volunteerId);
+      if (!other) continue;
+      seenConflictVolunteers.add(assignment.volunteerId);
+      conflicts.push({
+        volunteerId: assignment.volunteerId,
+        volunteerName:
+          `${assignment.volunteer.member.firstName} ${assignment.volunteer.member.lastName}`.trim(),
+        conflictingEventTitle: other.slot.event.title,
+        conflictingStartsAt: other.slot.event.startsAt,
+      });
+    }
+
     for (const slot of scheduleEvent.slots) {
       const slotNeeded = slot.needed;
       const slotFilled = slot.assignments.length;
@@ -424,40 +500,6 @@ async function resolveVolunteerSummary(
           slotsFilled: slotFilled,
           gap: slotNeeded - slotFilled,
         });
-      }
-
-      for (const assignment of slot.assignments) {
-        const volunteerId = assignment.volunteerId;
-        const other = await prisma.scheduleAssignment.findFirst({
-          where: {
-            organizationId,
-            volunteerId,
-            status: { in: ["ASSIGNED", "CONFIRMED"] },
-            id: { not: assignment.id },
-            slot: {
-              event: {
-                startsAt: {
-                  lt: event.endsAt ?? addDays(event.startsAt, 1),
-                },
-                OR: [
-                  { endsAt: { gt: event.startsAt } },
-                  { endsAt: null, startsAt: { gte: startOfDay(event.startsAt) } },
-                ],
-              },
-            },
-          },
-          include: {
-            slot: { include: { event: true } },
-          },
-        });
-        if (other) {
-          conflicts.push({
-            volunteerId,
-            volunteerName: `${assignment.volunteer.member.firstName} ${assignment.volunteer.member.lastName}`.trim(),
-            conflictingEventTitle: other.slot.event.title,
-            conflictingStartsAt: other.slot.event.startsAt,
-          });
-        }
       }
     }
 
@@ -538,13 +580,8 @@ export const eventRepository: EventRepository = {
       },
     });
 
-    const withParty = await Promise.all(
-      rows.map(async (row) => {
-        const party = await activeRegisteredPartySize(row.id);
-        return mapEvent(row, party);
-      })
-    );
-    return withParty;
+    const partyByEvent = await activeRegisteredPartySizes(rows.map((r) => r.id));
+    return rows.map((row) => mapEvent(row, partyByEvent.get(row.id) ?? 0));
   },
 
   async getEventProfile(organizationId, eventId) {

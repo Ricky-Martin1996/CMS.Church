@@ -19,6 +19,7 @@ import {
   forbidden,
   unauthorized,
 } from "@/server/errors";
+import { cache } from "@/server/cache";
 
 async function resolveActiveOrganizationId(
   userId: string,
@@ -48,8 +49,9 @@ async function resolveActiveOrganizationId(
 
 /**
  * Ensures the Clerk user exists in our database and returns the domain user.
+ * Request-memoized so layout + page + actions don't triple-upsert.
  */
-export async function requireDbUser() {
+export const requireDbUser = cache(async () => {
   const clerk = await currentUser();
   if (!clerk) throw unauthorized();
 
@@ -68,7 +70,7 @@ export async function requireDbUser() {
     lastName: clerk.lastName,
     imageUrl: clerk.imageUrl,
   });
-}
+});
 
 /**
  * Optional session helper — returns null when signed out.
@@ -86,8 +88,9 @@ export async function getSessionUser() {
 /**
  * Resolves the active tenant context for the signed-in user.
  * Throws when unauthenticated or when no organization membership exists.
+ * Request-memoized across layout, RSC pages, and nested calls.
  */
-export async function requireTenantContext(): Promise<TenantContext> {
+export const requireTenantContext = cache(async (): Promise<TenantContext> => {
   const user = await requireDbUser();
   const memberships = await listUserMemberships(user.id);
 
@@ -108,7 +111,7 @@ export async function requireTenantContext(): Promise<TenantContext> {
     membership: active,
     role: active.role,
   };
-}
+});
 
 export async function requirePermission(permission: Permission) {
   const ctx = await requireTenantContext();

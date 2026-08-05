@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { MotionCard } from "@/components/ui/motion-card";
 import {
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  MotionCard,
+  CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";

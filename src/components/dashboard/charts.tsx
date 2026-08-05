@@ -13,12 +13,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { MotionCard } from "@/components/ui/motion-card";
 import {
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  MotionCard,
+  CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { attendanceData, givingData, memberGrowth } from "@/lib/data";
 import { formatCurrency } from "@/lib/utils";

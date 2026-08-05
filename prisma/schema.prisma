@@ -375,6 +375,9 @@ model Member {
   @@index([organizationId, lastName, firstName])
   @@index([organizationId, email])
   @@index([organizationId, deletedAt])
+  @@index([organizationId, lifecycle])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, campus])
   @@index([assignedLeaderId])
   @@index([qrToken])
   @@map("members")
@@ -452,6 +455,9 @@ model Household {
   @@index([organizationId, status])
   @@index([organizationId, familyName])
   @@index([organizationId, deletedAt])
+  @@index([organizationId, cellGroup])
+  @@index([organizationId, engagementScore])
+  @@index([assignedCellLeaderId])
   @@index([qrToken])
   @@map("households")
 }
@@ -674,6 +680,7 @@ model AttendanceRecord {
   @@unique([sessionId, memberId])
   @@index([organizationId, memberId, attendedAt])
   @@index([organizationId, sessionId])
+  @@index([organizationId, householdId, attendedAt])
   @@index([householdId])
   @@map("attendance_records")
 }
@@ -778,6 +785,8 @@ model Visitor {
   @@index([organizationId, status])
   @@index([organizationId, email])
   @@index([organizationId, phone])
+  @@index([organizationId, stageEnteredAt])
+  @@index([organizationId, createdAt])
   @@index([assignedLeaderId])
   @@index([assignedUserId])
   @@map("visitors")
@@ -965,6 +974,7 @@ model PrayerRequest {
   member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, memberId])
+  @@index([organizationId, status])
   @@map("prayer_requests")
 }
 
@@ -1241,6 +1251,7 @@ model VolunteerMinistryPreference {
   ministry     Ministry        @relation(fields: [ministryId], references: [id], onDelete: Cascade)
 
   @@unique([volunteerId, ministryId])
+  @@index([organizationId, ministryId])
   @@map("volunteer_ministry_preferences")
 }
 
@@ -1547,6 +1558,7 @@ model ChurchEvent {
   @@index([organizationId, status])
   @@index([organizationId, eventType])
   @@index([organizationId, deletedAt])
+  @@index([organizationId, deletedAt, startsAt])
   @@index([checkInCode])
   @@map("church_events")
 }

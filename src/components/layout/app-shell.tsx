@@ -1,24 +1,56 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AuroraBackground } from "@/components/motion/aurora-background";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
-import { NotificationsPanel } from "@/components/layout/notifications";
-import { CommandPalette } from "@/components/command/command-palette";
 import { PageTransition } from "@/components/motion/page-transition";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { notifications } from "@/lib/data";
+import type { Role } from "@/domain/enums/role";
+
+const CommandPalette = dynamic(
+  () =>
+    import("@/components/command/command-palette").then((m) => ({
+      default: m.CommandPalette,
+    })),
+  { ssr: false }
+);
+
+const NotificationsPanel = dynamic(
+  () =>
+    import("@/components/layout/notifications").then((m) => ({
+      default: m.NotificationsPanel,
+    })),
+  { ssr: false }
+);
 
 const SIDEBAR_KEY = "churchos-sidebar-collapsed";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export type ShellOrganization = {
+  id: string;
+  name: string;
+  slug: string;
+  role: Role;
+};
+
+export function AppShell({
+  children,
+  organizations,
+  activeOrganizationId,
+}: {
+  children: React.ReactNode;
+  organizations?: ShellOrganization[];
+  activeOrganizationId?: string | null;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const reduceMotion = useReducedMotion();
   const unread = notifications.filter((n) => n.unread).length;
 
   useEffect(() => {
@@ -50,7 +82,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="mx-auto flex min-h-screen max-w-[1680px] gap-4 p-3 sm:p-4 lg:gap-5 lg:p-5">
         <div className="hidden lg:sticky lg:top-5 lg:block lg:h-[calc(100vh-2.5rem)]">
-          <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />
+          <Sidebar
+            collapsed={collapsed}
+            onToggle={toggleCollapsed}
+            organizations={organizations}
+            activeOrganizationId={activeOrganizationId}
+          />
         </div>
 
         <AnimatePresence>
@@ -59,16 +96,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <motion.button
                 type="button"
                 aria-label="Close navigation overlay"
-                initial={{ opacity: 0 }}
+                initial={reduceMotion ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0 }}
                 className="fixed inset-0 z-40 bg-background/50 backdrop-blur-sm lg:hidden"
                 onClick={() => setMobileOpen(false)}
               />
               <motion.div
-                initial={{ x: -300, opacity: 0 }}
+                initial={reduceMotion ? false : { x: -300, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -300, opacity: 0 }}
+                exit={reduceMotion ? undefined : { x: -300, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 320, damping: 34 }}
                 className="fixed left-3 top-3 bottom-3 z-50 lg:hidden"
               >
@@ -76,6 +113,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   collapsed={false}
                   onToggle={() => setMobileOpen(false)}
                   onNavigate={() => setMobileOpen(false)}
+                  organizations={organizations}
+                  activeOrganizationId={activeOrganizationId}
                 />
               </motion.div>
             </>
@@ -95,11 +134,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
-      <NotificationsPanel
-        open={notificationsOpen}
-        onClose={() => setNotificationsOpen(false)}
-      />
+      {commandOpen && (
+        <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+      )}
+      {notificationsOpen && (
+        <NotificationsPanel
+          open={notificationsOpen}
+          onClose={() => setNotificationsOpen(false)}
+        />
+      )}
     </div>
   );
 }

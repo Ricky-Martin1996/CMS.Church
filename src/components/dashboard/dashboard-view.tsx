@@ -1,10 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { getExecutiveDashboardAction } from "@/application/intelligence/actions";
 import {
   AiAssistantPanelView,
-  ExecutiveChartsPanel,
   HealthScoreRing,
   InsightList,
   RoleKpiStrip,
@@ -12,11 +12,27 @@ import {
   TaskCenter,
 } from "@/components/dashboard/executive/panels";
 import { FadeIn } from "@/components/motion/page-transition";
-import { ErrorState, LoadingState } from "@/components/shared/states";
+import { ErrorState, LoadingState, SkeletonCard } from "@/components/shared/states";
 import type { ExecutiveDashboard } from "@/domain/entities/intelligence";
 import { Badge } from "@/components/ui/badge";
 
-type SerializedDashboard = Omit<
+const ExecutiveChartsPanel = dynamic(
+  () =>
+    import("@/components/dashboard/executive/panels").then((m) => ({
+      default: m.ExecutiveChartsPanel,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid gap-4 md:grid-cols-2">
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    ),
+  }
+);
+
+export type SerializedDashboard = Omit<
   ExecutiveDashboard,
   "health" | "tasks" | "insights"
 > & {
@@ -31,10 +47,14 @@ type SerializedDashboard = Omit<
   >;
 };
 
-export function DashboardView() {
-  const [data, setData] = useState<SerializedDashboard | null>(null);
+export function DashboardView({
+  initialData = null,
+}: {
+  initialData?: SerializedDashboard | null;
+}) {
+  const [data, setData] = useState<SerializedDashboard | null>(initialData);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
 
   const load = useCallback(async () => {
     const res = await getExecutiveDashboardAction();
@@ -43,14 +63,15 @@ export function DashboardView() {
       setLoading(false);
       return;
     }
-    setData(JSON.parse(JSON.stringify(res.data)) as SerializedDashboard);
+    setData(res.data as unknown as SerializedDashboard);
     setError(null);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (initialData) return;
+    void load();
+  }, [initialData, load]);
 
   if (loading) {
     return <LoadingState label="Loading leadership intelligence…" />;

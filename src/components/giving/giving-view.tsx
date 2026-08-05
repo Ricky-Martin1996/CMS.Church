@@ -5,7 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { GivingChart } from "@/components/dashboard/charts";
 import { KpiCard } from "@/components/dashboard/stat-card";
 import { FadeIn } from "@/components/motion/page-transition";
-import { MotionCard, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MotionCard } from "@/components/ui/motion-card";
+import {
+  CardContent, CardDescription, CardHeader, CardTitle,
+} from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 
 const recentGifts = [

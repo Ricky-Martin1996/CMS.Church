@@ -27,9 +27,24 @@ type ActivePayload = {
   organizations: OrgItem[];
 };
 
-export function OrganizationSwitcher({ collapsed }: { collapsed?: boolean }) {
+export function OrganizationSwitcher({
+  collapsed,
+  initialOrganizations,
+  initialActiveOrganizationId,
+}: {
+  collapsed?: boolean;
+  initialOrganizations?: OrgItem[];
+  initialActiveOrganizationId?: string | null;
+}) {
   const router = useRouter();
-  const [data, setData] = useState<ActivePayload | null>(null);
+  const [data, setData] = useState<ActivePayload | null>(
+    initialOrganizations?.length
+      ? {
+          activeOrganizationId: initialActiveOrganizationId ?? null,
+          organizations: initialOrganizations,
+        }
+      : null
+  );
   const [pending, startTransition] = useTransition();
 
   const load = useCallback(async () => {
@@ -40,8 +55,9 @@ export function OrganizationSwitcher({ collapsed }: { collapsed?: boolean }) {
   }, []);
 
   useEffect(() => {
+    if (initialOrganizations?.length) return;
     void load();
-  }, [load]);
+  }, [initialOrganizations, load]);
 
   const active = data?.organizations.find(
     (o) => o.id === data.activeOrganizationId

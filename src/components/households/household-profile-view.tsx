@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -49,7 +50,6 @@ import {
   HouseholdGrowthChart,
 } from "@/components/households/household-charts";
 import { HouseholdMemberManager } from "@/components/households/household-member-manager";
-import { HouseholdQrDialog } from "@/components/households/household-qr-dialog";
 import { HouseholdStatusBadge } from "@/components/households/household-status-badge";
 import {
   formatAddress,
@@ -58,6 +58,14 @@ import {
   memberDisplayName,
 } from "@/components/households/utils";
 import { FadeIn } from "@/components/motion/page-transition";
+
+const HouseholdQrDialog = dynamic(
+  () =>
+    import("@/components/households/household-qr-dialog").then((m) => ({
+      default: m.HouseholdQrDialog,
+    })),
+  { ssr: false }
+);
 import type { HouseholdProfile } from "@/domain/entities/household";
 import {
   DocumentType,

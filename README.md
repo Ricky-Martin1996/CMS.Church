@@ -6,6 +6,9 @@ multi-tenancy, RBAC, and Clerk auth details.
 See [docs/SECURITY.md](./docs/SECURITY.md) for the security audit findings
 and remediations.
 
+See [docs/PERFORMANCE.md](./docs/PERFORMANCE.md) for rendering, Prisma, and
+Core Web Vitals optimizations.
+
 ## Getting started
 
 ```bash

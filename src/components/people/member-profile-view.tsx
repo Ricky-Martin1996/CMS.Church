@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -53,13 +54,20 @@ import {
   GivingTrendChart,
   ScoreBar,
 } from "@/components/people/member-charts";
-import { MemberQrDialog } from "@/components/people/member-qr-dialog";
 import {
   MemberLifecycleBadge,
   MemberStatusBadge,
 } from "@/components/people/member-status-badge";
 import { formatMemberDate, getInitials } from "@/components/people/utils";
 import { FadeIn } from "@/components/motion/page-transition";
+
+const MemberQrDialog = dynamic(
+  () =>
+    import("@/components/people/member-qr-dialog").then((m) => ({
+      default: m.MemberQrDialog,
+    })),
+  { ssr: false }
+);
 import type { MemberProfile } from "@/domain/entities/member";
 import {
   ACTIVITY_TYPE_LABELS,

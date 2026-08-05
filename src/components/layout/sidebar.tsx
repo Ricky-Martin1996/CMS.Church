@@ -54,10 +54,19 @@ export function Sidebar({
   collapsed,
   onToggle,
   onNavigate,
+  organizations,
+  activeOrganizationId,
 }: {
   collapsed: boolean;
   onToggle: () => void;
   onNavigate?: () => void;
+  organizations?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    role: import("@/domain/enums/role").Role;
+  }>;
+  activeOrganizationId?: string | null;
 }) {
   const pathname = usePathname();
 
@@ -163,7 +172,11 @@ export function Sidebar({
 
       <div className={cn("p-3", collapsed && "px-2")}>
         <div className="mb-2">
-          <OrganizationSwitcher collapsed={collapsed} />
+          <OrganizationSwitcher
+            collapsed={collapsed}
+            initialOrganizations={organizations}
+            initialActiveOrganizationId={activeOrganizationId}
+          />
         </div>
         <AnimatePresence initial={false}>
           {!collapsed && (

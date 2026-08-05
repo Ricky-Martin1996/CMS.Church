@@ -26,12 +26,9 @@ import { ROLE_LABELS } from "@/domain/enums/role";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { MotionCard } from "@/components/ui/motion-card";
 import {
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  MotionCard,
+  CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import {
   Area,

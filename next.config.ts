@@ -41,6 +41,37 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  compress: true,
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "date-fns",
+      "recharts",
+      "framer-motion",
+      "@radix-ui/react-avatar",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-select",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-checkbox",
+      "@radix-ui/react-label",
+      "@radix-ui/react-slot",
+      "@radix-ui/react-tooltip",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-scroll-area",
+      "@radix-ui/react-separator",
+      "@radix-ui/react-switch",
+    ],
+  },
+  images: {
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      { protocol: "https", hostname: "img.clerk.com" },
+      { protocol: "https", hostname: "images.clerk.dev" },
+      { protocol: "https", hostname: "www.gravatar.com" },
+      { protocol: "https", hostname: "images.unsplash.com" },
+    ],
+  },
   async headers() {
     return [
       {

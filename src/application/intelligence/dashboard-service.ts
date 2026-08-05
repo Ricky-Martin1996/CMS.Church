@@ -32,15 +32,21 @@ function greetingName(ctx: TenantContext) {
 async function collectCareSignals(organizationId: string) {
   const now = new Date();
   const inSeven = addDays(now, 7);
-  const monthStart = startOfMonth(now);
   const fourWeeksAgo = subWeeks(startOfDay(now), 4);
+
+  // Build month/day windows for the next 7 days (handles year wrap).
+  const dayKeys = new Set<string>();
+  for (let i = 0; i <= 7; i++) {
+    const d = addDays(startOfDay(now), i);
+    dayKeys.add(`${d.getMonth() + 1}-${d.getDate()}`);
+  }
 
   const [
     openPrayers,
     birthdayMembers,
     anniversaryHouseholds,
     activeHouseholds,
-    recentAttendanceHouseholdIds,
+    presentHouseholdCount,
   ] = await Promise.all([
     prisma.prayerRequest.count({
       where: {
@@ -54,8 +60,8 @@ async function collectCareSignals(organizationId: string) {
         deletedAt: null,
         dateOfBirth: { not: null },
       },
-      select: { id: true, dateOfBirth: true },
-      take: 2000,
+      select: { dateOfBirth: true },
+      take: 5000,
     }),
     prisma.household.findMany({
       where: {
@@ -63,8 +69,8 @@ async function collectCareSignals(organizationId: string) {
         deletedAt: null,
         anniversaryDate: { not: null },
       },
-      select: { id: true, anniversaryDate: true },
-      take: 1000,
+      select: { anniversaryDate: true },
+      take: 5000,
     }),
     prisma.household.count({
       where: { organizationId, deletedAt: null, status: "ACTIVE" },
@@ -82,34 +88,24 @@ async function collectCareSignals(organizationId: string) {
 
   const upcomingBirthdays = birthdayMembers.filter((m) => {
     if (!m.dateOfBirth) return false;
-    const next = new Date(
-      now.getFullYear(),
-      m.dateOfBirth.getMonth(),
-      m.dateOfBirth.getDate()
+    return dayKeys.has(
+      `${m.dateOfBirth.getMonth() + 1}-${m.dateOfBirth.getDate()}`
     );
-    if (next < startOfDay(now)) next.setFullYear(now.getFullYear() + 1);
-    return next <= inSeven;
   }).length;
 
   const upcomingAnniversaries = anniversaryHouseholds.filter((h) => {
     if (!h.anniversaryDate) return false;
-    const next = new Date(
-      now.getFullYear(),
-      h.anniversaryDate.getMonth(),
-      h.anniversaryDate.getDate()
+    return dayKeys.has(
+      `${h.anniversaryDate.getMonth() + 1}-${h.anniversaryDate.getDate()}`
     );
-    if (next < startOfDay(now)) next.setFullYear(now.getFullYear() + 1);
-    return next <= inSeven;
   }).length;
 
-  const presentHouseholdIds = new Set(
-    recentAttendanceHouseholdIds
-      .map((r) => r.householdId)
-      .filter(Boolean) as string[]
+  const absentHouseholds = Math.max(
+    0,
+    activeHouseholds - presentHouseholdCount.length
   );
-  const absentHouseholds = Math.max(0, activeHouseholds - presentHouseholdIds.size);
 
-  void monthStart;
+  void inSeven;
   return {
     openPrayers,
     upcomingBirthdays,
@@ -120,59 +116,65 @@ async function collectCareSignals(organizationId: string) {
 
 async function collectMemberSnapshot(organizationId: string) {
   const monthStart = startOfMonth(new Date());
-  const [totalCount, activeCount, newThisMonth, growthBuckets] = await Promise.all([
-    prisma.member.count({
-      where: { organizationId, deletedAt: null },
-    }),
-    prisma.member.count({
-      where: {
-        organizationId,
-        deletedAt: null,
-        status: { in: ["ACTIVE", "NEW_MEMBER"] },
-      },
-    }),
-    prisma.member.count({
-      where: {
-        organizationId,
-        deletedAt: null,
-        createdAt: { gte: monthStart },
-      },
-    }),
-    Promise.all(
-      Array.from({ length: 6 }, async (_, i) => {
-        const end = startOfMonth(subDays(new Date(), (5 - i) * 30));
-        const start = startOfMonth(subDays(end, 30));
-        const count = await prisma.member.count({
+  const bucketEnds = Array.from({ length: 6 }, (_, i) =>
+    startOfMonth(subDays(new Date(), (5 - i) * 30))
+  );
+
+  const [totalCount, activeCount, newThisMonth, ...bucketCounts] =
+    await Promise.all([
+      prisma.member.count({
+        where: { organizationId, deletedAt: null },
+      }),
+      prisma.member.count({
+        where: {
+          organizationId,
+          deletedAt: null,
+          status: { in: ["ACTIVE", "NEW_MEMBER"] },
+        },
+      }),
+      prisma.member.count({
+        where: {
+          organizationId,
+          deletedAt: null,
+          createdAt: { gte: monthStart },
+        },
+      }),
+      ...bucketEnds.map((end) =>
+        prisma.member.count({
           where: {
             organizationId,
             deletedAt: null,
             createdAt: { lte: end },
           },
-        });
-        return {
-          label: format(start, "MMM"),
-          primary: count,
-        } satisfies ChartSeriesPoint;
-      })
-    ),
-  ]);
+        })
+      ),
+    ]);
+
+  const growthBuckets: ChartSeriesPoint[] = bucketEnds.map((end, i) => {
+    const start = startOfMonth(subDays(end, 30));
+    return {
+      label: format(start, "MMM"),
+      primary: bucketCounts[i] ?? 0,
+    };
+  });
 
   return { totalCount, activeCount, newThisMonth, growthBuckets };
 }
 
 async function collectHouseholdSnapshot(organizationId: string) {
-  const agg = await prisma.household.aggregate({
-    where: { organizationId, deletedAt: null, status: "ACTIVE" },
-    _avg: { engagementScore: true },
-    _count: true,
-  });
-
-  const top = await prisma.household.findMany({
-    where: { organizationId, deletedAt: null, status: "ACTIVE" },
-    orderBy: { engagementScore: "desc" },
-    take: 6,
-    select: { familyName: true, engagementScore: true },
-  });
+  const [agg, top] = await Promise.all([
+    prisma.household.aggregate({
+      where: { organizationId, deletedAt: null, status: "ACTIVE" },
+      _avg: { engagementScore: true },
+      _count: true,
+    }),
+    prisma.household.findMany({
+      where: { organizationId, deletedAt: null, status: "ACTIVE" },
+      orderBy: { engagementScore: "desc" },
+      take: 6,
+      select: { familyName: true, engagementScore: true },
+    }),
+  ]);
 
   return {
     activeCount: agg._count,
