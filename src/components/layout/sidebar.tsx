@@ -50,8 +50,8 @@ export function Sidebar({
     <motion.aside
       initial={false}
       animate={{ width: collapsed ? 84 : 268 }}
-      transition={{ type: "spring", stiffness: 320, damping: 34 }}
-      className="relative flex h-full flex-col overflow-hidden glass-strong rounded-[1.75rem]"
+      transition={{ type: "spring", stiffness: 380, damping: 36 }}
+      className="relative flex h-full flex-col overflow-hidden glass-strong rounded-[1.5rem]"
     >
       <div
         className={cn(

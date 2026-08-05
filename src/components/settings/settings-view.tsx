@@ -21,6 +21,8 @@ import {
 import { FadeIn } from "@/components/motion/page-transition";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { AccentPicker } from "@/components/layout/accent-picker";
+import { useToast } from "@/components/ui/toast";
+import { PageHeader } from "@/components/shared/page-header";
 
 export function SettingsView() {
   const [emailAlerts, setEmailAlerts] = useState(true);
@@ -28,26 +30,38 @@ export function SettingsView() {
   const [demoState, setDemoState] = useState<
     "idle" | "loading" | "success" | "error" | "skeleton"
   >("idle");
+  const { toast } = useToast();
 
   const runDemo = async (result: "success" | "error") => {
     setDemoState("loading");
     await new Promise((r) => setTimeout(r, 900));
     setDemoState(result);
+    if (result === "success") {
+      toast({
+        title: "Preferences saved",
+        description: "Your notification settings are up to date.",
+        tone: "success",
+      });
+    } else {
+      toast({
+        title: "Couldn’t save",
+        description: "Check your connection and try again.",
+        tone: "error",
+      });
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="page-pad">
       <FadeIn>
-        <div className="relative overflow-hidden rounded-[2rem] glass-strong p-6 sm:p-8">
+        <div className="relative overflow-hidden rounded-[1.5rem] glass-strong p-6 sm:rounded-[2rem] sm:p-8">
           <div className="pointer-events-none absolute right-0 top-0 h-48 w-48 rounded-full bg-primary/15 blur-3xl" />
-          <div className="relative space-y-2">
-            <p className="text-sm font-medium text-primary">Control center</p>
-            <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-              Settings
-            </h1>
-            <p className="max-w-lg text-muted-foreground">
-              Profile, appearance, accents, and system feedback — tuned with care.
-            </p>
+          <div className="relative">
+            <PageHeader
+              eyebrow="Control center"
+              title="Settings"
+              description="Profile, appearance, accents, and system feedback — tuned with care."
+            />
           </div>
         </div>
       </FadeIn>
@@ -67,7 +81,17 @@ export function SettingsView() {
               <Label htmlFor="campus">Primary campus</Label>
               <Input id="campus" defaultValue="Main Campus · 120 Faith Ave" />
             </div>
-            <Button variant="glow" className="w-full sm:w-auto">
+            <Button
+              variant="glow"
+              className="w-full sm:w-auto"
+              onClick={() =>
+                toast({
+                  title: "Profile saved",
+                  description: "Church details were updated.",
+                  tone: "success",
+                })
+              }
+            >
               Save changes
             </Button>
           </CardContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
   CheckCircle2,
@@ -8,8 +8,10 @@ import {
   Loader2,
   type LucideIcon,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { duration, easeOut } from "@/lib/motion";
 
 export function LoadingState({
   label = "Loading…",
@@ -23,12 +25,14 @@ export function LoadingState({
       role="status"
       aria-live="polite"
       className={cn(
-        "flex flex-col items-center justify-center gap-4 py-16 text-muted-foreground",
+        "flex flex-col items-center justify-center gap-4 px-6 py-16 text-muted-foreground",
         className
       )}
     >
-      <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden />
-      <p className="text-sm">{label}</p>
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+      </div>
+      <p className="text-sm font-medium">{label}</p>
     </div>
   );
 }
@@ -36,13 +40,55 @@ export function LoadingState({
 export function SkeletonCard({ className }: { className?: string }) {
   return (
     <div
-      className={cn("glass overflow-hidden rounded-3xl p-6", className)}
+      className={cn("glass overflow-hidden rounded-[1.5rem] p-6", className)}
       aria-hidden
     >
-      <div className="skeleton-shimmer mb-4 h-4 w-1/3 rounded-lg" />
-      <div className="skeleton-shimmer mb-2 h-8 w-1/2 rounded-lg" />
-      <div className="skeleton-shimmer h-3 w-2/3 rounded-lg" />
+      <div className="skeleton-shimmer mb-4 h-3 w-1/3" />
+      <div className="skeleton-shimmer mb-3 h-7 w-1/2" />
+      <div className="skeleton-shimmer h-3 w-2/3" />
     </div>
+  );
+}
+
+export function SkeletonRows({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="space-y-3 p-4" aria-hidden>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <div className="skeleton-shimmer h-10 w-10 rounded-2xl" />
+          <div className="flex-1 space-y-2">
+            <div className="skeleton-shimmer h-3 w-1/3" />
+            <div className="skeleton-shimmer h-3 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StateShell({
+  children,
+  className,
+  role,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  role?: React.AriaRole;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      role={role}
+      initial={reduce ? false : { opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: duration.base, ease: easeOut }}
+      className={cn(
+        "flex flex-col items-center justify-center gap-4 px-6 py-16 text-center",
+        className
+      )}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -58,24 +104,24 @@ export function EmptyState({
   action?: { label: string; onClick: () => void };
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center gap-4 px-6 py-16 text-center"
-    >
-      <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-muted text-muted-foreground">
+    <StateShell>
+      <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-muted text-muted-foreground ring-1 ring-border/60">
         <Icon className="h-6 w-6" aria-hidden />
       </div>
-      <div className="space-y-1">
-        <h3 className="font-display text-lg font-semibold">{title}</h3>
-        <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
+      <div className="space-y-1.5">
+        <h3 className="font-display text-lg font-semibold tracking-tight">
+          {title}
+        </h3>
+        <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+          {description}
+        </p>
       </div>
       {action && (
-        <Button onClick={action.onClick} variant="secondary">
+        <Button onClick={action.onClick} variant="secondary" className="mt-1">
           {action.label}
         </Button>
       )}
-    </motion.div>
+    </StateShell>
   );
 }
 
@@ -89,25 +135,24 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      role="alert"
-      className="flex flex-col items-center justify-center gap-4 px-6 py-16 text-center"
-    >
-      <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-destructive/10 text-destructive">
+    <StateShell role="alert">
+      <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-destructive/10 text-destructive ring-1 ring-destructive/20">
         <AlertCircle className="h-6 w-6" aria-hidden />
       </div>
-      <div className="space-y-1">
-        <h3 className="font-display text-lg font-semibold">{title}</h3>
-        <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
+      <div className="space-y-1.5">
+        <h3 className="font-display text-lg font-semibold tracking-tight">
+          {title}
+        </h3>
+        <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+          {description}
+        </p>
       </div>
       {onRetry && (
-        <Button onClick={onRetry} variant="outline">
+        <Button onClick={onRetry} variant="outline" className="mt-1">
           Try again
         </Button>
       )}
-    </motion.div>
+    </StateShell>
   );
 }
 
@@ -119,19 +164,18 @@ export function SuccessState({
   description: string;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      role="status"
-      className="flex flex-col items-center justify-center gap-4 px-6 py-16 text-center"
-    >
-      <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-success/12 text-success">
+    <StateShell role="status">
+      <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-success/12 text-success ring-1 ring-success/20">
         <CheckCircle2 className="h-6 w-6" aria-hidden />
       </div>
-      <div className="space-y-1">
-        <h3 className="font-display text-lg font-semibold">{title}</h3>
-        <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
+      <div className="space-y-1.5">
+        <h3 className="font-display text-lg font-semibold tracking-tight">
+          {title}
+        </h3>
+        <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+          {description}
+        </p>
       </div>
-    </motion.div>
+    </StateShell>
   );
 }

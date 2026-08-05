@@ -10,7 +10,7 @@ import { groups } from "@/lib/data";
 
 export function GroupsView() {
   return (
-    <div className="space-y-6">
+    <div className="page-pad">
       <FadeIn>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
@@ -18,7 +18,7 @@ export function GroupsView() {
             <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
               Groups
             </h1>
-            <p className="max-w-lg text-muted-foreground">
+            <p className="max-w-lg text-[15px] leading-relaxed text-muted-foreground">
               Life groups that make belonging tangible — woven across campuses.
             </p>
           </div>
