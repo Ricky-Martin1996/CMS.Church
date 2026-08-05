@@ -212,3 +212,37 @@ export type {
   RegisterForEventInput,
   EventCheckInInput,
 } from "@/domain/entities/event";
+export {
+  HubChannel,
+  HubMessageStatus,
+  HubMessageDirection,
+  HubAudienceType,
+  HubAutomationTrigger,
+  HubDeliveryStatus,
+  HubProviderKind,
+  HubActivityType,
+  HUB_CHANNEL_LABELS,
+  HUB_STATUS_LABELS,
+  HUB_AUDIENCE_LABELS,
+  HUB_TRIGGER_LABELS,
+  HUB_DELIVERY_LABELS,
+  TEMPLATE_VARIABLES,
+} from "@/domain/enums/communication";
+export type {
+  AudienceFilter,
+  CommunicationTemplateEntity,
+  CommunicationCampaignEntity,
+  CommunicationMessageEntity,
+  CommunicationDeliveryEntity,
+  CommunicationAutomationEntity,
+  CommunicationActivityEntity,
+  CommunicationProviderConfigEntity,
+  CommunicationAnalytics,
+  MessageCenterQuery,
+  CreateTemplateInput,
+  CreateCampaignInput,
+  CreateMessageInput,
+  CreateAutomationInput,
+  TemplateRenderContext,
+} from "@/domain/entities/communication";
+export type { TemplateVariable } from "@/domain/enums/communication";

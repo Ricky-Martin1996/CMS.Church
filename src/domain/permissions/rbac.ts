@@ -77,6 +77,12 @@ export const Permission = {
   VOLUNTEER_WRITE: "volunteer:write",
   SCHEDULE_MANAGE: "schedule:manage",
 
+  // Communication Hub
+  COMMUNICATION_READ: "communication:read",
+  COMMUNICATION_WRITE: "communication:write",
+  COMMUNICATION_SEND: "communication:send",
+  COMMUNICATION_TEMPLATES: "communication:templates",
+
   // Settings
   SETTINGS_READ: "settings:read",
   SETTINGS_WRITE: "settings:write",
@@ -96,6 +102,7 @@ const MEMBER_BASE: Permission[] = [
   Permission.VOLUNTEER_READ,
   Permission.EVENT_READ,
   Permission.EVENTS_READ,
+  Permission.COMMUNICATION_READ,
   Permission.GROUPS_READ,
   Permission.SETTINGS_READ,
 ];
@@ -108,6 +115,13 @@ const EVENT_OPS: Permission[] = [
   Permission.EVENT_CHECKIN,
   Permission.EVENTS_READ,
   Permission.EVENTS_WRITE,
+];
+
+const COMM_OPS: Permission[] = [
+  Permission.COMMUNICATION_READ,
+  Permission.COMMUNICATION_WRITE,
+  Permission.COMMUNICATION_SEND,
+  Permission.COMMUNICATION_TEMPLATES,
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
@@ -145,6 +159,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     Permission.VISITOR_COMMUNICATE,
     Permission.VISITOR_CONVERT,
     ...EVENT_OPS,
+    ...COMM_OPS,
     Permission.GROUPS_READ,
     Permission.GROUPS_WRITE,
     Permission.GIVING_READ,
@@ -186,6 +201,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     Permission.VISITOR_COMMUNICATE,
     Permission.VISITOR_CONVERT,
     ...EVENT_OPS,
+    ...COMM_OPS,
     Permission.GROUPS_READ,
     Permission.GROUPS_WRITE,
     Permission.GIVING_READ,
@@ -214,6 +230,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     Permission.EVENT_READ,
     Permission.EVENT_CHECKIN,
     Permission.EVENTS_READ,
+    Permission.COMMUNICATION_READ,
+    Permission.COMMUNICATION_WRITE,
   ],
 
   [Role.VOLUNTEER_LEADER]: [
@@ -229,6 +247,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     Permission.ATTENDANCE_WRITE,
     Permission.ATTENDANCE_SESSIONS,
     ...EVENT_OPS,
+    ...COMM_OPS,
   ],
 
   [Role.FINANCE_MANAGER]: [

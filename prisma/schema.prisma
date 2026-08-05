@@ -116,6 +116,13 @@ model Organization {
   eventWaitlist    EventWaitlistEntry[]
   eventActivities  EventActivity[]
   eventMessages    EventMessage[]
+  communicationTemplates CommunicationTemplate[]
+  communicationCampaigns CommunicationCampaign[]
+  communicationMessages  CommunicationMessage[]
+  communicationDeliveries CommunicationDelivery[]
+  communicationAutomations CommunicationAutomation[]
+  communicationActivities CommunicationActivity[]
+  communicationProviders CommunicationProviderConfig[]
 
   @@index([slug])
   @@map("organizations")
@@ -1751,4 +1758,282 @@ model EventMessage {
 
   @@index([organizationId, eventId, createdAt])
   @@map("event_messages")
+}
+
+// =============================================================================
+// Enterprise Communication Hub
+// =============================================================================
+
+enum HubChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+  PUSH
+  INTERNAL
+}
+
+enum HubMessageStatus {
+  DRAFT
+  SCHEDULED
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  ARCHIVED
+}
+
+enum HubMessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum HubAudienceType {
+  ALL_MEMBERS
+  VISITORS
+  HOUSEHOLDS
+  CELL_GROUPS
+  VOLUNTEERS
+  MINISTRY
+  EVENT_REGISTRANTS
+  CUSTOM
+}
+
+enum HubAutomationTrigger {
+  NEW_VISITOR
+  BIRTHDAY
+  ANNIVERSARY
+  EVENT_REMINDER
+  VOLUNTEER_ASSIGNMENT
+  ATTENDANCE_MISSED
+  PRAYER_ASSIGNED
+  MEMBERSHIP_APPROVED
+  FOLLOW_UP_TASK_DUE
+}
+
+enum HubDeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  FAILED
+  BOUNCED
+}
+
+enum HubProviderKind {
+  RESEND
+  TWILIO
+  WHATSAPP_BUSINESS
+  FIREBASE
+  INTERNAL
+}
+
+enum HubActivityType {
+  CREATED
+  UPDATED
+  SCHEDULED
+  QUEUED
+  SENT
+  FAILED
+  ARCHIVED
+  TEMPLATE_USED
+  AUTOMATION_FIRED
+  DELIVERY_UPDATED
+}
+
+model CommunicationTemplate {
+  id             String     @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  channel        HubChannel
+  subject        String?
+  body           String
+  variables      String[]   @default([])
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaigns    CommunicationCampaign[]
+  messages     CommunicationMessage[]
+  automations  CommunicationAutomation[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, channel])
+  @@map("communication_templates")
+}
+
+model CommunicationCampaign {
+  id               String          @id @default(cuid())
+  organizationId   String
+  name             String
+  description      String?
+  channel          HubChannel
+  audienceType     HubAudienceType @default(ALL_MEMBERS)
+  /// Filter payload: ministryId, eventId, cellGroup, memberIds, tagSlugs, etc.
+  audienceFilter   Json?
+  templateId       String?
+  subject          String?
+  body             String
+  status           HubMessageStatus @default(DRAFT)
+  scheduledFor     DateTime?
+  sentAt           DateTime?
+  createdByUserId  String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     CommunicationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  messages     CommunicationMessage[]
+  deliveries   CommunicationDelivery[]
+  activities   CommunicationActivity[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, scheduledFor])
+  @@map("communication_campaigns")
+}
+
+/// Unified inbox / outbox message unit (campaign child or standalone).
+model CommunicationMessage {
+  id               String              @id @default(cuid())
+  organizationId   String
+  campaignId       String?
+  templateId       String?
+  channel          HubChannel
+  direction        HubMessageDirection @default(OUTBOUND)
+  status           HubMessageStatus    @default(DRAFT)
+  subject          String?
+  body             String
+  audienceType     HubAudienceType?
+  audienceFilter   Json?
+  /// Provider adapter metadata { provider, queued, externalId, error }
+  metadata         Json?
+  scheduledFor     DateTime?
+  sentAt           DateTime?
+  failedAt         DateTime?
+  failureReason    String?
+  createdByUserId  String?
+  memberId         String?
+  visitorId        String?
+  householdId      String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     CommunicationCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  template     CommunicationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  deliveries   CommunicationDelivery[]
+  activities   CommunicationActivity[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, direction, createdAt])
+  @@index([organizationId, channel])
+  @@index([campaignId])
+  @@index([memberId])
+  @@index([visitorId])
+  @@index([householdId])
+  @@map("communication_messages")
+}
+
+model CommunicationDelivery {
+  id               String            @id @default(cuid())
+  organizationId   String
+  messageId        String
+  campaignId       String?
+  channel          HubChannel
+  status           HubDeliveryStatus @default(PENDING)
+  recipientName    String?
+  recipientEmail   String?
+  recipientPhone   String?
+  memberId         String?
+  visitorId        String?
+  householdId      String?
+  provider         HubProviderKind   @default(INTERNAL)
+  externalId       String?
+  /// Provider response / tracking payload
+  metadata         Json?
+  errorMessage     String?
+  sentAt           DateTime?
+  deliveredAt      DateTime?
+  openedAt         DateTime?
+  clickedAt        DateTime?
+  failedAt         DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  message      CommunicationMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  campaign     CommunicationCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([messageId])
+  @@index([campaignId])
+  @@index([memberId])
+  @@index([visitorId])
+  @@index([householdId])
+  @@map("communication_deliveries")
+}
+
+model CommunicationAutomation {
+  id             String               @id @default(cuid())
+  organizationId String
+  name           String
+  trigger        HubAutomationTrigger
+  channel        HubChannel
+  templateId     String?
+  subject        String?
+  body           String
+  isActive       Boolean              @default(true)
+  /// Delay minutes after trigger, filters, etc.
+  config         Json?
+  lastFiredAt    DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     CommunicationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, trigger, isActive])
+  @@map("communication_automations")
+}
+
+model CommunicationActivity {
+  id             String         @id @default(cuid())
+  organizationId String
+  type           HubActivityType
+  title          String
+  description    String?
+  actorUserId    String?
+  campaignId     String?
+  messageId      String?
+  metadata       Json?
+  occurredAt     DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     CommunicationCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  message      CommunicationMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, occurredAt])
+  @@index([campaignId])
+  @@index([messageId])
+  @@map("communication_activities")
+}
+
+model CommunicationProviderConfig {
+  id             String          @id @default(cuid())
+  organizationId String
+  provider       HubProviderKind
+  channel        HubChannel
+  isEnabled      Boolean         @default(false)
+  /// Non-secret config (from/region). Secrets stay in env.
+  config         Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, provider, channel])
+  @@map("communication_provider_configs")
 }

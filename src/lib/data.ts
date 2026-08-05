@@ -392,6 +392,7 @@ export const navItems = [
   { href: "/volunteers", label: "Volunteers", icon: "HandHeart" },
   { href: "/schedule", label: "Schedule", icon: "CalendarClock" },
   { href: "/events", label: "Events", icon: "CalendarDays" },
+  { href: "/communications", label: "Communications", icon: "MessageSquare" },
   { href: "/giving", label: "Giving", icon: "HeartHandshake" },
   { href: "/groups", label: "Groups", icon: "UsersRound" },
   { href: "/settings", label: "Settings", icon: "Settings" },
@@ -401,6 +402,7 @@ export const quickActions = [
   { id: "1", label: "Add person", href: "/people", icon: "UserPlus" },
   { id: "5", label: "Add household", href: "/households", icon: "Home" },
   { id: "2", label: "Create event", href: "/events", icon: "CalendarPlus" },
+  { id: "6", label: "New campaign", href: "/communications", icon: "MessageSquare" },
   { id: "3", label: "Record gift", href: "/giving", icon: "HandCoins" },
   { id: "4", label: "New group", href: "/groups", icon: "UsersRound" },
 ] as const;

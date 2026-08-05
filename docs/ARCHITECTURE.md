@@ -12,6 +12,7 @@ src/
     visitors/             # Visitor Journey & Follow-up
     ministries/           # Ministry & Volunteer Management
     events/               # Enterprise Events & Church Calendar
+    communications/       # Enterprise Communication Hub
   infrastructure/         # Prisma, repositories
   server/                 # Next.js server helpers (auth, rbac, tenant scope)
   app/                    # Presentation (App Router)
@@ -50,6 +51,8 @@ Ministry permissions: `ministry:read|write`, `volunteer:read|write`,
 
 Event permissions: `event:read|write|publish|manage|checkin`
 (plus legacy `events:read|write`).
+
+Communication permissions: `communication:read|write|send|templates`.
 
 ## Auth flow
 
@@ -130,6 +133,32 @@ Volunteer Meeting · Custom.
 - Communication: Email / WhatsApp / SMS / Push / In-app queued with
   `{ provider: null, queued: false }` provider metadata
 - Server actions: `src/application/events/actions.ts`
+
+## Enterprise Communication Hub
+
+Connects People, Households, Visitors, Events, Ministries, and Volunteers.
+
+Channels: Email · WhatsApp · SMS · Push · Internal.
+
+- Hub: `/communications` — inbox/outbox, campaign builder, scheduling calendar,
+  delivery analytics
+- Templates: `/communications/templates` — reusable copy with `{{FirstName}}`,
+  `{{FamilyName}}`, `{{EventName}}`, `{{ServiceTime}}`, etc.
+- Campaigns: `/communications/campaigns` — audience targeting + send
+- Automations: `/communications/automations` — triggers (new visitor, birthday,
+  anniversary, event reminder, volunteer assignment, attendance missed,
+  prayer assigned, membership approved, follow-up due)
+- Message detail: `/communications/[id]` — deliveries + open/click simulation
+- Audiences: all members, visitors, households, cell groups, volunteers,
+  ministries, event registrants, custom filters
+- Provider adapters (stubbed, env-ready): Resend, Twilio, WhatsApp Business,
+  Firebase Push, Internal
+- Timeline fan-out: Member · Household · Visitor activities + visitor
+  `CommunicationLog`
+- Models: `CommunicationTemplate`, `CommunicationCampaign`,
+  `CommunicationMessage`, `CommunicationDelivery`, `CommunicationAutomation`,
+  `CommunicationActivity`, `CommunicationProviderConfig`
+- Server actions: `src/application/communications/actions.ts`
 
 ## Setup
 

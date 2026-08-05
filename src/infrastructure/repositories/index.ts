@@ -152,6 +152,7 @@ export {
 export { visitorJourneyRepository } from "@/infrastructure/repositories/visitor-journey-repository";
 export { ministryRepository } from "@/infrastructure/repositories/ministry-repository";
 export { eventRepository } from "@/infrastructure/repositories/event-repository";
+export { communicationRepository } from "@/infrastructure/repositories/communication-repository";
 
 export const membershipRepository: MembershipRepository = {
   async findByUserAndOrg(userId, organizationId) {

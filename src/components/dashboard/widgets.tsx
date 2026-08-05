@@ -57,6 +57,7 @@ const quickIcons = {
   CalendarPlus,
   HandCoins,
   UsersRound,
+  MessageSquare,
 };
 
 export function ActivityFeed({ delay = 0 }: { delay?: number }) {

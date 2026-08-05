@@ -2138,6 +2138,298 @@ async function main() {
 
     console.log("✓ Seeded church calendar events for Grace Community");
   }
+
+  // ===========================================================================
+  // Enterprise Communication Hub (Grace Community)
+  // ===========================================================================
+  const templateCount = await prisma.communicationTemplate.count({
+    where: { organizationId: grace.id },
+  });
+
+  if (templateCount === 0) {
+    const welcomeEmail = await prisma.communicationTemplate.create({
+      data: {
+        organizationId: grace.id,
+        name: "Visitor Welcome Email",
+        slug: "visitor-welcome-email",
+        channel: "EMAIL",
+        subject: "Welcome to {{ChurchName}}, {{FirstName}}!",
+        body: "Hi {{FirstName}},\n\nWe're so glad you visited {{ChurchName}}. Our team is praying for you this week.\n\nSee you Sunday at {{ServiceTime}}.\n\n— The Grace Community Team",
+        variables: ["FirstName", "ChurchName", "ServiceTime"],
+      },
+    });
+
+    const eventReminder = await prisma.communicationTemplate.create({
+      data: {
+        organizationId: grace.id,
+        name: "Event Reminder SMS",
+        slug: "event-reminder-sms",
+        channel: "SMS",
+        subject: null,
+        body: "Hi {{FirstName}} — reminder: {{EventName}} starts at {{ServiceTime}}. See you there!",
+        variables: ["FirstName", "EventName", "ServiceTime"],
+      },
+    });
+
+    const volunteerWhatsApp = await prisma.communicationTemplate.create({
+      data: {
+        organizationId: grace.id,
+        name: "Volunteer Assignment WhatsApp",
+        slug: "volunteer-assignment-whatsapp",
+        channel: "WHATSAPP",
+        subject: null,
+        body: "Hi {{FirstName}}! You've been assigned to {{MinistryName}} this Sunday. Reply YES to confirm.",
+        variables: ["FirstName", "MinistryName"],
+      },
+    });
+
+    const birthdayTpl = await prisma.communicationTemplate.create({
+      data: {
+        organizationId: grace.id,
+        name: "Birthday Blessing",
+        slug: "birthday-blessing",
+        channel: "EMAIL",
+        subject: "Happy Birthday, {{FirstName}}!",
+        body: "Dear {{FirstName}},\n\nThe {{ChurchName}} family celebrates you today. May this year overflow with joy.\n\nWith love,\nPastoral Care",
+        variables: ["FirstName", "ChurchName"],
+      },
+    });
+
+    const sundayCampaign = await prisma.communicationCampaign.create({
+      data: {
+        organizationId: grace.id,
+        name: "Sunday Service Reminder",
+        description: "Weekly nudge to all active members",
+        channel: "EMAIL",
+        audienceType: "ALL_MEMBERS",
+        templateId: welcomeEmail.id,
+        subject: "See you Sunday, {{FirstName}}",
+        body: "Hi {{FirstName}},\n\nWorship starts at 10:00 AM at Main Campus. Kids check-in opens at 9:30.\n\n{{ChurchName}}",
+        status: "SENT",
+        sentAt: subDays(new Date(), 2),
+        createdByUserId: pastor.id,
+      },
+    });
+
+    const sundayMessage = await prisma.communicationMessage.create({
+      data: {
+        organizationId: grace.id,
+        campaignId: sundayCampaign.id,
+        templateId: welcomeEmail.id,
+        channel: "EMAIL",
+        direction: "OUTBOUND",
+        status: "SENT",
+        subject: sundayCampaign.subject,
+        body: sundayCampaign.body,
+        audienceType: "ALL_MEMBERS",
+        sentAt: sundayCampaign.sentAt,
+        createdByUserId: pastor.id,
+        metadata: { provider: "RESEND", queued: false, sent: 3, failed: 0 },
+      },
+    });
+
+    const seedMembers = await prisma.member.findMany({
+      where: { organizationId: grace.id },
+      take: 3,
+      orderBy: { firstName: "asc" },
+    });
+
+    for (const m of seedMembers) {
+      await prisma.communicationDelivery.create({
+        data: {
+          organizationId: grace.id,
+          messageId: sundayMessage.id,
+          campaignId: sundayCampaign.id,
+          channel: "EMAIL",
+          status: "OPENED",
+          recipientName: `${m.firstName} ${m.lastName}`,
+          recipientEmail: m.email,
+          memberId: m.id,
+          provider: "RESEND",
+          metadata: { provider: "RESEND", queued: false },
+          sentAt: subDays(new Date(), 2),
+          deliveredAt: subDays(new Date(), 2),
+          openedAt: subDays(new Date(), 1),
+        },
+      });
+      await prisma.memberActivity.create({
+        data: {
+          organizationId: grace.id,
+          memberId: m.id,
+          type: "EMAIL_SENT",
+          title: "Email sent",
+          description: sundayCampaign.subject,
+          metadata: { messageId: sundayMessage.id, hub: true },
+          occurredAt: subDays(new Date(), 2),
+        },
+      });
+    }
+
+    await prisma.communicationCampaign.create({
+      data: {
+        organizationId: grace.id,
+        name: "Youth Night Push",
+        description: "Push notification for Friday youth",
+        channel: "PUSH",
+        audienceType: "VOLUNTEERS",
+        subject: "Youth Night tonight",
+        body: "Doors open at 7 PM in the Youth Loft. Bring a friend!",
+        status: "SCHEDULED",
+        scheduledFor: setMinutes(setHours(addDaysSafe(new Date(), 2), 16), 0),
+        createdByUserId: pastor.id,
+      },
+    });
+
+    await prisma.communicationMessage.create({
+      data: {
+        organizationId: grace.id,
+        channel: "WHATSAPP",
+        direction: "OUTBOUND",
+        status: "DRAFT",
+        body: "Draft pastoral care check-in for {{FamilyName}}",
+        audienceType: "HOUSEHOLDS",
+        createdByUserId: pastor.id,
+        metadata: { provider: null, queued: false },
+      },
+    });
+
+    await prisma.communicationMessage.create({
+      data: {
+        organizationId: grace.id,
+        channel: "SMS",
+        direction: "INBOUND",
+        status: "SENT",
+        body: "Thanks for the reminder — see you Sunday!",
+        sentAt: subDays(new Date(), 1),
+        metadata: { provider: "TWILIO", queued: false, inbound: true },
+      },
+    });
+
+    await prisma.communicationAutomation.createMany({
+      data: [
+        {
+          organizationId: grace.id,
+          name: "New Visitor Welcome",
+          trigger: "NEW_VISITOR",
+          channel: "EMAIL",
+          templateId: welcomeEmail.id,
+          subject: welcomeEmail.subject,
+          body: welcomeEmail.body,
+          isActive: true,
+          config: { delayMinutes: 30 },
+        },
+        {
+          organizationId: grace.id,
+          name: "Birthday Blessing",
+          trigger: "BIRTHDAY",
+          channel: "EMAIL",
+          templateId: birthdayTpl.id,
+          subject: birthdayTpl.subject,
+          body: birthdayTpl.body,
+          isActive: true,
+        },
+        {
+          organizationId: grace.id,
+          name: "Event Reminder (24h)",
+          trigger: "EVENT_REMINDER",
+          channel: "SMS",
+          templateId: eventReminder.id,
+          body: eventReminder.body,
+          isActive: true,
+          config: { hoursBefore: 24 },
+        },
+        {
+          organizationId: grace.id,
+          name: "Volunteer Assignment Confirm",
+          trigger: "VOLUNTEER_ASSIGNMENT",
+          channel: "WHATSAPP",
+          templateId: volunteerWhatsApp.id,
+          body: volunteerWhatsApp.body,
+          isActive: true,
+        },
+        {
+          organizationId: grace.id,
+          name: "Follow-up Task Due",
+          trigger: "FOLLOW_UP_TASK_DUE",
+          channel: "INTERNAL",
+          subject: "Follow-up due",
+          body: "Hi {{FirstName}}, a follow-up task is due today.",
+          isActive: false,
+        },
+      ],
+    });
+
+    await prisma.communicationProviderConfig.createMany({
+      data: [
+        {
+          organizationId: grace.id,
+          provider: "RESEND",
+          channel: "EMAIL",
+          isEnabled: false,
+          config: { provider: "RESEND", queued: false },
+        },
+        {
+          organizationId: grace.id,
+          provider: "TWILIO",
+          channel: "SMS",
+          isEnabled: false,
+          config: { provider: "TWILIO", queued: false },
+        },
+        {
+          organizationId: grace.id,
+          provider: "WHATSAPP_BUSINESS",
+          channel: "WHATSAPP",
+          isEnabled: false,
+          config: { provider: "WHATSAPP_BUSINESS", queued: false },
+        },
+        {
+          organizationId: grace.id,
+          provider: "FIREBASE",
+          channel: "PUSH",
+          isEnabled: false,
+          config: { provider: "FIREBASE", queued: false },
+        },
+        {
+          organizationId: grace.id,
+          provider: "INTERNAL",
+          channel: "INTERNAL",
+          isEnabled: true,
+          config: { provider: "INTERNAL", queued: false },
+        },
+      ],
+    });
+
+    await prisma.communicationActivity.createMany({
+      data: [
+        {
+          organizationId: grace.id,
+          type: "CREATED",
+          title: "Template created: Visitor Welcome Email",
+          metadata: { templateId: welcomeEmail.id },
+          occurredAt: subDays(new Date(), 10),
+        },
+        {
+          organizationId: grace.id,
+          type: "SENT",
+          title: "Campaign sent: Sunday Service Reminder",
+          campaignId: sundayCampaign.id,
+          messageId: sundayMessage.id,
+          description: "3 delivered · 0 failed",
+          occurredAt: subDays(new Date(), 2),
+        },
+        {
+          organizationId: grace.id,
+          type: "SCHEDULED",
+          title: "Campaign scheduled: Youth Night Push",
+          occurredAt: subDays(new Date(), 1),
+        },
+      ],
+    });
+
+    void eventReminder;
+    void volunteerWhatsApp;
+    console.log("✓ Seeded communication hub for Grace Community");
+  }
 }
 
 function addDaysSafe(date: Date, days: number) {

@@ -11,6 +11,7 @@ import {
   HeartHandshake,
   Home,
   LayoutDashboard,
+  MessageSquare,
   Settings,
   Sparkles,
   Users,
@@ -33,6 +34,7 @@ const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
   HandHeart,
   CalendarClock,
   CalendarDays,
+  MessageSquare,
   HeartHandshake,
   UsersRound,
   Settings,
@@ -43,6 +45,7 @@ const actions = [
   { name: "Add household", href: "/households", icon: Home },
   { name: "Create event", href: "/events", icon: Plus },
   { name: "Church calendar", href: "/events/calendar", icon: CalendarDays },
+  { name: "New campaign", href: "/communications", icon: MessageSquare },
   { name: "Record gift", href: "/giving", icon: Plus },
 ];
 

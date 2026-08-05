@@ -18,6 +18,7 @@ const isAppRoute = createRouteMatcher([
   "/volunteers(.*)",
   "/schedule(.*)",
   "/events(.*)",
+  "/communications(.*)",
   "/giving(.*)",
   "/groups(.*)",
   "/settings(.*)",
