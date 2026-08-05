@@ -101,7 +101,10 @@ export type MemberRepository = {
     tagId: string
   ): Promise<number>;
   findByIds(organizationId: string, ids: string[]): Promise<MemberEntity[]>;
-  findByQrToken(qrToken: string): Promise<MemberEntity | null>;
+  findByQrToken(
+    organizationId: string,
+    qrToken: string
+  ): Promise<MemberEntity | null>;
   updateScores(
     organizationId: string,
     id: string,
@@ -173,6 +176,15 @@ export type DocumentRepository = {
     url?: string | null;
     uploadedById?: string | null;
   }): Promise<MemberProfile["documents"][number]>;
+  getById(
+    organizationId: string,
+    id: string
+  ): Promise<MemberProfile["documents"][number] | null>;
+  updateUrl(
+    organizationId: string,
+    id: string,
+    url: string
+  ): Promise<void>;
   listForMember(
     organizationId: string,
     memberId: string

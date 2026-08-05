@@ -5,6 +5,7 @@ import {
   userRepository,
 } from "@/infrastructure/repositories";
 import { slugify } from "@/lib/slug";
+import { conflict } from "@/server/errors";
 
 export type SyncClerkUserInput = {
   clerkUserId: string;
@@ -27,6 +28,11 @@ export type EnsureOrganizationInput = {
   ownerRole?: Role;
 };
 
+/**
+ * Creates (or links via Clerk org id) an organization and ensures the caller
+ * is a member. Never joins an existing org solely because a slug collides —
+ * that would allow organization takeover via onboarding.
+ */
 export async function ensureOrganizationWithOwner(
   input: EnsureOrganizationInput
 ) {
@@ -39,7 +45,18 @@ export async function ensureOrganizationWithOwner(
   if (!organization) {
     const existingSlug = await organizationRepository.findBySlug(slug);
     if (existingSlug) {
-      organization = existingSlug;
+      // Only reuse when the caller already owns membership (idempotent re-onboard)
+      const existingMembership = await membershipRepository.findByUserAndOrg(
+        input.ownerUserId,
+        existingSlug.id
+      );
+      if (existingMembership && existingMembership.status === "ACTIVE") {
+        organization = existingSlug;
+      } else {
+        throw conflict(
+          "That church URL slug is already taken. Choose a different name or slug."
+        );
+      }
     } else {
       organization = await organizationRepository.create({
         name: input.name,

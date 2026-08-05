@@ -27,8 +27,11 @@ import {
 import { Permission } from "@/domain/permissions/rbac";
 import { requirePermission } from "@/server/auth/session";
 import { AppError } from "@/server/errors";
+import { assertRateLimit, RateLimits } from "@/server/security/rate-limit";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+
+const MAX_SEARCH_LIMIT = 50;
 
 function actionError(error: unknown): { ok: false; error: string } {
   if (error instanceof AppError) {
@@ -159,10 +162,11 @@ export async function checkInByQrAction(
 ) {
   try {
     const ctx = await requirePermission(Permission.ATTENDANCE_WRITE);
+    assertRateLimit(`checkin:attendance:${ctx.user.id}`, RateLimits.checkIn);
     const data = await checkInByQr({
       organizationId: ctx.organization.id,
-      sessionId,
-      qrToken: z.string().min(1).parse(qrToken),
+      sessionId: z.string().min(1).parse(sessionId),
+      qrToken: z.string().min(1).max(120).parse(qrToken),
       actorUserId: ctx.user.id,
       autoCheckInAll,
     });
@@ -176,10 +180,15 @@ export async function checkInByQrAction(
 export async function searchMembersAction(query: string, limit?: number) {
   try {
     const ctx = await requirePermission(Permission.ATTENDANCE_WRITE);
+    assertRateLimit(`search:members:${ctx.user.id}`, RateLimits.search);
+    const capped = Math.min(
+      Math.max(1, typeof limit === "number" ? limit : 20),
+      MAX_SEARCH_LIMIT
+    );
     const data = await searchMembersForCheckIn(
       ctx.organization.id,
-      query,
-      limit
+      z.string().max(120).parse(query),
+      capped
     );
     return { ok: true as const, data };
   } catch (error) {
@@ -190,10 +199,15 @@ export async function searchMembersAction(query: string, limit?: number) {
 export async function searchHouseholdsAction(query: string, limit?: number) {
   try {
     const ctx = await requirePermission(Permission.ATTENDANCE_WRITE);
+    assertRateLimit(`search:households:${ctx.user.id}`, RateLimits.search);
+    const capped = Math.min(
+      Math.max(1, typeof limit === "number" ? limit : 20),
+      MAX_SEARCH_LIMIT
+    );
     const data = await searchHouseholdsForCheckIn(
       ctx.organization.id,
-      query,
-      limit
+      z.string().max(120).parse(query),
+      capped
     );
     return { ok: true as const, data };
   } catch (error) {

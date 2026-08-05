@@ -18,7 +18,8 @@ import {
 } from "@/domain/enums/member";
 import { canWriteNoteVisibility, noteVisibilitiesForRole } from "@/domain/permissions/notes";
 import type { Role } from "@/domain/enums/role";
-import { forbidden, notFound } from "@/server/errors";
+import { forbidden, notFound, AppError } from "@/server/errors";
+import { requireHouseholdInOrg, requireMemberInOrg } from "@/server/tenant/scope";
 import {
   activityRepository,
 } from "@/infrastructure/repositories";
@@ -33,6 +34,8 @@ import {
   householdAnalyticsBuilder,
   householdRepository,
 } from "@/infrastructure/repositories/household-repository";
+
+const MAX_CSV_IMPORT_ROWS = 1000;
 
 async function logHouseholdActivity(input: {
   organizationId: string;
@@ -176,6 +179,8 @@ export async function addMemberToHousehold(input: {
   isPrimary?: boolean;
   actorUserId: string;
 }) {
+  await requireHouseholdInOrg(input.organizationId, input.householdId);
+  await requireMemberInOrg(input.organizationId, input.memberId);
   const membership = await householdRepository.addMember({
     organizationId: input.organizationId,
     householdId: input.householdId,
@@ -425,6 +430,7 @@ export async function logHouseholdQuickAction(input: {
   action: "email" | "whatsapp" | "visit" | "prayer" | "homeVisit";
   detail?: string;
 }) {
+  await requireHouseholdInOrg(input.organizationId, input.householdId);
   const map = {
     email: {
       type: HouseholdActivityType.EMAIL_SENT,
@@ -492,6 +498,7 @@ export async function addHouseholdNote(input: {
   visibility: NoteVisibility;
   body: string;
 }) {
+  await requireHouseholdInOrg(input.organizationId, input.householdId);
   if (!canWriteNoteVisibility(input.role, input.visibility)) {
     throw forbidden("You cannot write notes at this visibility");
   }
@@ -527,6 +534,7 @@ export async function uploadHouseholdDocument(input: {
   storageKey: string;
   url?: string | null;
 }) {
+  await requireHouseholdInOrg(input.organizationId, input.householdId);
   const doc = await householdDocumentRepository.create({
     ...input,
     uploadedById: input.actorUserId,
@@ -641,6 +649,13 @@ export async function importHouseholdsCsv(input: {
   actorUserId: string;
   rows: CsvHouseholdRow[];
 }) {
+  if (input.rows.length > MAX_CSV_IMPORT_ROWS) {
+    throw new AppError(
+      `CSV import is limited to ${MAX_CSV_IMPORT_ROWS} rows per upload`,
+      "VALIDATION",
+      400
+    );
+  }
   let created = 0;
 
   for (const row of input.rows) {

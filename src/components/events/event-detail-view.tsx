@@ -21,6 +21,7 @@ import {
   queueEventMessageAction,
   registerForEventAction,
 } from "@/application/events/actions";
+import { safeCssUrl } from "@/lib/safe-url";
 import {
   capacityPercent,
   eventStatusLabel,
@@ -193,9 +194,9 @@ export function EventDetailView({ eventId }: { eventId: string }) {
           <div
             className="absolute inset-0 bg-gradient-to-br from-primary/25 via-transparent to-chart-2/20"
             style={
-              event.heroImageUrl
+              safeCssUrl(event.heroImageUrl)
                 ? {
-                    backgroundImage: `linear-gradient(115deg, hsl(var(--background)/0.8), hsl(var(--background)/0.4)), url(${event.heroImageUrl})`,
+                    backgroundImage: `linear-gradient(115deg, hsl(var(--background)/0.8), hsl(var(--background)/0.4)), url(${JSON.stringify(safeCssUrl(event.heroImageUrl))})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                   }

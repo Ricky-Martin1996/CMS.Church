@@ -15,7 +15,8 @@ export class AppError extends Error {
       | "FORBIDDEN"
       | "NOT_FOUND"
       | "VALIDATION"
-      | "CONFLICT",
+      | "CONFLICT"
+      | "RATE_LIMITED",
     readonly status: number
   ) {
     super(message);
@@ -37,4 +38,10 @@ export function notFound(message = "Resource not found") {
 
 export function conflict(message = "Resource already exists") {
   return new AppError(message, "CONFLICT", 409);
+}
+
+export function rateLimited(
+  message = "Too many requests. Please try again shortly."
+) {
+  return new AppError(message, "RATE_LIMITED", 429);
 }

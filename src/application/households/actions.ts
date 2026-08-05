@@ -38,13 +38,16 @@ import {
 import { Permission } from "@/domain/permissions/rbac";
 import {
   requirePermission,
-  requireTenantContext,
 } from "@/server/auth/session";
 import { AppError } from "@/server/errors";
 import { revalidatePath } from "next/cache";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
-import { randomUUID } from "crypto";
+import { assertRateLimit, RateLimits } from "@/server/security/rate-limit";
+import {
+  publicDownloadPath,
+  storePrivateUpload,
+} from "@/server/security/uploads";
+import { householdDocumentRepository } from "@/infrastructure/repositories/household-supporting";
+import { httpUrlSchema } from "@/lib/http-url";
 import { z } from "zod";
 
 function actionError(error: unknown): { ok: false; error: string } {
@@ -122,7 +125,7 @@ export async function createHouseholdAction(raw: unknown) {
       preferredLanguage: z.string().max(40).optional(),
       emergencyContact: z.string().max(120).optional(),
       emergencyPhone: z.string().max(40).optional(),
-      photoUrl: z.string().url().optional(),
+      photoUrl: httpUrlSchema.optional(),
       notes: z.string().max(4000).optional(),
       status: z.nativeEnum(HouseholdStatus).optional(),
       cellGroup: z.string().max(80).optional(),
@@ -175,7 +178,7 @@ export async function updateHouseholdAction(householdId: string, raw: unknown) {
       anniversaryDate: z.string().datetime().nullable().optional(),
       emergencyContact: z.string().nullable().optional(),
       emergencyPhone: z.string().nullable().optional(),
-      photoUrl: z.string().url().nullable().optional(),
+      photoUrl: httpUrlSchema.nullable().optional(),
       notes: z.string().nullable().optional(),
       status: z.nativeEnum(HouseholdStatus).optional(),
       cellGroup: z.string().nullable().optional(),
@@ -385,14 +388,21 @@ export async function householdQuickAction(
 ) {
   try {
     const ctx = await requirePermission(Permission.HOUSEHOLDS_WRITE);
+    const parsed = z
+      .object({
+        householdId: z.string().min(1),
+        action: z.enum(["email", "whatsapp", "visit", "prayer", "homeVisit"]),
+        detail: z.string().max(500).optional(),
+      })
+      .parse({ householdId, action, detail });
     await logHouseholdQuickAction({
       organizationId: ctx.organization.id,
-      householdId,
+      householdId: parsed.householdId,
       actorUserId: ctx.user.id,
-      action,
-      detail,
+      action: parsed.action,
+      detail: parsed.detail,
     });
-    revalidatePath(`/households/${householdId}`);
+    revalidatePath(`/households/${parsed.householdId}`);
     return { ok: true as const };
   } catch (error) {
     return actionError(error);
@@ -417,9 +427,17 @@ export async function exportHouseholdsCsvAction(
 export async function importHouseholdsCsvAction(csvText: string) {
   try {
     const ctx = await requirePermission(Permission.HOUSEHOLDS_IMPORT);
-    const lines = csvText.trim().split(/\r?\n/);
+    assertRateLimit(`csv:households:${ctx.user.id}`, RateLimits.csvImport);
+    const text = z.string().max(2_000_000).parse(csvText);
+    const lines = text.trim().split(/\r?\n/);
     if (lines.length < 2) {
       return { ok: false as const, error: "CSV has no data rows" };
+    }
+    if (lines.length - 1 > 1000) {
+      return {
+        ok: false as const,
+        error: "CSV import is limited to 1000 rows per upload",
+      };
     }
     const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
     const rows = lines.slice(1).map((line) => {
@@ -482,39 +500,44 @@ export async function uploadHouseholdDocumentAction(
 ) {
   try {
     const ctx = await requirePermission(Permission.HOUSEHOLDS_WRITE);
+    assertRateLimit(`upload:households:${ctx.user.id}`, RateLimits.upload);
     const file = formData.get("file");
     if (!(file instanceof File)) {
       return { ok: false as const, error: "File required" };
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      return { ok: false as const, error: "File too large (max 8MB)" };
     }
     const typeRaw = String(formData.get("type") ?? "OTHER");
     const type = (Object.values(DocumentType) as string[]).includes(typeRaw)
       ? (typeRaw as DocumentType)
       : DocumentType.OTHER;
 
-    const bytes = Buffer.from(await file.arrayBuffer());
-    const key = `${ctx.organization.id}/${householdId}/${randomUUID()}-${file.name}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "households");
-    await mkdir(uploadDir, { recursive: true });
-    const diskPath = path.join(uploadDir, key.replaceAll("/", "__"));
-    await writeFile(diskPath, bytes);
-    const url = `/uploads/households/${path.basename(diskPath)}`;
+    const stored = await storePrivateUpload({
+      kind: "households",
+      organizationId: ctx.organization.id,
+      ownerId: householdId,
+      file,
+    });
 
     const doc = await uploadHouseholdDocument({
       organizationId: ctx.organization.id,
       householdId,
       actorUserId: ctx.user.id,
       type,
-      name: file.name,
-      mimeType: file.type || "application/octet-stream",
-      sizeBytes: file.size,
-      storageKey: key,
-      url,
+      name: stored.name,
+      mimeType: stored.mimeType,
+      sizeBytes: stored.sizeBytes,
+      storageKey: stored.storageKey,
+      url: null,
     });
+
+    const url = publicDownloadPath("households", doc.id);
+    await householdDocumentRepository.updateUrl(
+      ctx.organization.id,
+      doc.id,
+      url
+    );
+
     revalidatePath(`/households/${householdId}`);
-    return { ok: true as const, data: doc };
+    return { ok: true as const, data: { ...doc, url } };
   } catch (error) {
     return actionError(error);
   }
@@ -567,11 +590,11 @@ export async function saveHouseholdFilterAction(
 
 export async function deleteHouseholdFilterAction(id: string) {
   try {
-    const ctx = await requireTenantContext();
+    const ctx = await requirePermission(Permission.HOUSEHOLDS_READ);
     await deleteHouseholdSavedFilter({
       organizationId: ctx.organization.id,
       userId: ctx.user.id,
-      id,
+      id: z.string().min(1).parse(id),
     });
     return { ok: true as const };
   } catch (error) {

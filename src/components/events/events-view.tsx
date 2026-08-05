@@ -18,6 +18,7 @@ import {
   getEventAnalyticsAction,
   listChurchEventsAction,
 } from "@/application/events/actions";
+import { safeCssUrl } from "@/lib/safe-url";
 import { EventAnalyticsPanel } from "@/components/events/event-analytics";
 import {
   capacityPercent,
@@ -316,9 +317,9 @@ export function EventsView() {
               <div
                 className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-chart-2/15"
                 style={
-                  hero.heroImageUrl
+                  safeCssUrl(hero.heroImageUrl)
                     ? {
-                        backgroundImage: `linear-gradient(120deg, hsl(var(--background)/0.75), hsl(var(--background)/0.35)), url(${hero.heroImageUrl})`,
+                        backgroundImage: `linear-gradient(120deg, hsl(var(--background)/0.75), hsl(var(--background)/0.35)), url(${JSON.stringify(safeCssUrl(hero.heroImageUrl))})`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                       }

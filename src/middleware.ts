@@ -1,6 +1,9 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+/**
+ * Public routes — everything else requires authentication (deny-by-default).
+ */
 const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
@@ -8,32 +11,12 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks(.*)",
 ]);
 
-const isAppRoute = createRouteMatcher([
-  "/dashboard(.*)",
-  "/people(.*)",
-  "/households(.*)",
-  "/attendance(.*)",
-  "/visitors(.*)",
-  "/ministries(.*)",
-  "/volunteers(.*)",
-  "/schedule(.*)",
-  "/events(.*)",
-  "/communications(.*)",
-  "/giving(.*)",
-  "/groups(.*)",
-  "/settings(.*)",
-  "/onboarding(.*)",
-]);
-
 export default clerkMiddleware(async (auth, request) => {
   if (isPublicRoute(request)) {
     return NextResponse.next();
   }
 
-  if (isAppRoute(request) || request.nextUrl.pathname.startsWith("/api/")) {
-    await auth.protect();
-  }
-
+  await auth.protect();
   return NextResponse.next();
 });
 

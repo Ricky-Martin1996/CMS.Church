@@ -112,12 +112,17 @@ export async function advanceVisitorStageAction(
 ) {
   try {
     const ctx = await requirePermission(Permission.VISITOR_WRITE);
-    const note = raw?.note;
+    const parsed = z
+      .object({
+        visitorId: z.string().min(1),
+        note: z.string().max(500).optional(),
+      })
+      .parse({ visitorId, note: raw?.note });
     const data = await advanceVisitorStage({
       organizationId: ctx.organization.id,
-      visitorId,
+      visitorId: parsed.visitorId,
       actorUserId: ctx.user.id,
-      note,
+      note: parsed.note,
     });
     revalidateVisitors();
     return { ok: true as const, data };

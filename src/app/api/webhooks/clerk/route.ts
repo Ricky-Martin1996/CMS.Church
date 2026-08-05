@@ -5,8 +5,37 @@ import type { WebhookEvent } from "@clerk/nextjs/server";
 import { syncClerkUser } from "@/application/organization/organization-service";
 import { prisma } from "@/infrastructure/db/prisma";
 import { Role } from "@/domain/enums/role";
+import { assertRateLimit, RateLimits } from "@/server/security/rate-limit";
 
 export const runtime = "nodejs";
+
+/** Roles that Clerk org membership sync is allowed to set/overwrite. */
+const CLERK_SYNCABLE_ROLES = new Set<Role>([
+  Role.CHURCH_ADMIN,
+  Role.MEMBER,
+  Role.GUEST,
+]);
+
+function mapClerkOrgRole(clerkRole: string): Role {
+  return clerkRole === "org:admin" ? Role.CHURCH_ADMIN : Role.MEMBER;
+}
+
+/**
+ * Preserve rich ChurchOS roles (PASTOR, CELL_LEADER, etc.) that Clerk cannot
+ * represent. Only sync the coarse admin/member axis for syncable roles.
+ */
+function resolveSyncedRole(
+  existingRole: Role | null,
+  clerkRole: string
+): Role {
+  const mapped = mapClerkOrgRole(clerkRole);
+  if (!existingRole) return mapped;
+  if (!CLERK_SYNCABLE_ROLES.has(existingRole)) {
+    // Keep PASTOR / FINANCE_MANAGER / etc.
+    return existingRole;
+  }
+  return mapped;
+}
 
 export async function POST(req: Request) {
   const secret = process.env.CLERK_WEBHOOK_SECRET;
@@ -15,6 +44,16 @@ export async function POST(req: Request) {
       { error: "CLERK_WEBHOOK_SECRET is not configured" },
       { status: 500 }
     );
+  }
+
+  try {
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      "unknown";
+    assertRateLimit(`webhook:clerk:${ip}`, RateLimits.webhook);
+  } catch {
+    return NextResponse.json({ error: "Rate limited" }, { status: 429 });
   }
 
   const payload = await req.text();
@@ -63,7 +102,26 @@ export async function POST(req: Request) {
     case "user.deleted": {
       const id = event.data.id;
       if (id) {
-        await prisma.user.deleteMany({ where: { clerkUserId: id } });
+        // Soft-deactivate instead of hard-delete to preserve audit/history FKs.
+        const user = await prisma.user.findUnique({
+          where: { clerkUserId: id },
+        });
+        if (user) {
+          await prisma.membership.updateMany({
+            where: { userId: user.id },
+            data: { status: "SUSPENDED" },
+          });
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              clerkUserId: `deleted_${id}`,
+              email: `deleted+${id}@invalid.local`,
+              firstName: null,
+              lastName: null,
+              imageUrl: null,
+            },
+          });
+        }
       }
       break;
     }
@@ -84,11 +142,19 @@ export async function POST(req: Request) {
           },
         });
       } else {
+        // Avoid slug collision takeover from webhook — append suffix if needed
+        let slug = org.slug;
+        const slugOwner = await prisma.organization.findUnique({
+          where: { slug },
+        });
+        if (slugOwner && slugOwner.clerkOrgId !== org.id) {
+          slug = `${org.slug}-${org.id.slice(-6)}`;
+        }
         await prisma.organization.create({
           data: {
             clerkOrgId: org.id,
             name: org.name,
-            slug: org.slug,
+            slug,
             imageUrl: org.image_url,
           },
         });
@@ -107,19 +173,38 @@ export async function POST(req: Request) {
       });
 
       if (!organization) {
+        let slug = membership.organization.slug;
+        const slugOwner = await prisma.organization.findUnique({
+          where: { slug },
+        });
+        if (slugOwner) {
+          slug = `${slug}-${clerkOrgId.slice(-6)}`;
+        }
         organization = await prisma.organization.create({
           data: {
             clerkOrgId,
             name: membership.organization.name,
-            slug: membership.organization.slug,
+            slug,
             imageUrl: membership.organization.image_url,
           },
         });
       }
 
       if (user && organization) {
-        const role =
-          membership.role === "org:admin" ? Role.CHURCH_ADMIN : Role.MEMBER;
+        const existing = await prisma.membership.findUnique({
+          where: {
+            userId_organizationId: {
+              userId: user.id,
+              organizationId: organization.id,
+            },
+          },
+        });
+
+        const role = resolveSyncedRole(
+          (existing?.role as Role | undefined) ?? null,
+          membership.role
+        );
+
         await prisma.membership.upsert({
           where: {
             userId_organizationId: {
@@ -131,8 +216,12 @@ export async function POST(req: Request) {
             userId: user.id,
             organizationId: organization.id,
             role,
+            status: "ACTIVE",
           },
-          update: { role },
+          update: {
+            role,
+            status: "ACTIVE",
+          },
         });
       }
       break;

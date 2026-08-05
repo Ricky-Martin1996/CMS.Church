@@ -45,3 +45,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 public/uploads
+.data
+.data/uploads

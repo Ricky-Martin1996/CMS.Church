@@ -21,6 +21,7 @@ import {
   updateHouseholdAction,
   uploadHouseholdDocumentAction,
 } from "@/application/households/actions";
+import { safeBackgroundImage } from "@/lib/safe-url";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -143,6 +144,7 @@ export function HouseholdProfileView({
   const [tab, setTab] = useState<TabId>("overview");
   const [, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const photoBackground = safeBackgroundImage(profile.photoUrl);
 
   const refresh = () => {
     window.location.reload();
@@ -215,16 +217,16 @@ export function HouseholdProfileView({
           <div
             className="h-40 sm:h-52"
             style={
-              profile.photoUrl
+              photoBackground
                 ? {
-                    backgroundImage: `url(${profile.photoUrl})`,
+                    backgroundImage: photoBackground,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                   }
                 : undefined
             }
           >
-            {!profile.photoUrl && (
+            {!photoBackground && (
               <div
                 className="h-full w-full opacity-80"
                 style={{

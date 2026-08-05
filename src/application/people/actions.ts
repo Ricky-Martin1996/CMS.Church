@@ -38,13 +38,16 @@ import { Permission } from "@/domain/permissions/rbac";
 import { DEFAULT_MEMBER_COLUMNS, type MemberListColumn } from "@/domain/entities/member";
 import {
   requirePermission,
-  requireTenantContext,
 } from "@/server/auth/session";
 import { AppError } from "@/server/errors";
 import { revalidatePath } from "next/cache";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { randomUUID } from "crypto";
+import { assertRateLimit, RateLimits } from "@/server/security/rate-limit";
+import {
+  publicDownloadPath,
+  storePrivateUpload,
+} from "@/server/security/uploads";
+import { documentRepository } from "@/infrastructure/repositories";
+import { httpUrlSchema } from "@/lib/http-url";
 
 function actionError(error: unknown): { ok: false; error: string } {
   if (error instanceof AppError) {
@@ -159,8 +162,8 @@ export async function updateMemberAction(memberId: string, raw: unknown) {
       lifecycle: z.nativeEnum(MemberLifecycle).optional(),
       campus: z.string().max(80).nullable().optional(),
       ministryRole: z.string().max(80).nullable().optional(),
-      avatarUrl: z.string().url().nullable().optional(),
-      coverUrl: z.string().url().nullable().optional(),
+      avatarUrl: httpUrlSchema.nullable().optional(),
+      coverUrl: httpUrlSchema.nullable().optional(),
       addressLine1: z.string().nullable().optional(),
       city: z.string().nullable().optional(),
       state: z.string().nullable().optional(),
@@ -271,9 +274,17 @@ export async function exportMembersCsvAction(filter?: z.infer<typeof filterSchem
 export async function importMembersCsvAction(csvText: string) {
   try {
     const ctx = await requirePermission(Permission.PEOPLE_IMPORT);
-    const lines = csvText.trim().split(/\r?\n/);
+    assertRateLimit(`csv:members:${ctx.user.id}`, RateLimits.csvImport);
+    const text = z.string().max(2_000_000).parse(csvText);
+    const lines = text.trim().split(/\r?\n/);
     if (lines.length < 2) {
       return { ok: false as const, error: "CSV has no data rows" };
+    }
+    if (lines.length - 1 > 1000) {
+      return {
+        ok: false as const,
+        error: "CSV import is limited to 1000 rows per upload",
+      };
     }
     const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
     const rows = lines.slice(1).map((line) => {
@@ -332,39 +343,40 @@ export async function addNoteAction(memberId: string, raw: unknown) {
 export async function uploadDocumentAction(memberId: string, formData: FormData) {
   try {
     const ctx = await requirePermission(Permission.PEOPLE_DOCUMENTS);
+    assertRateLimit(`upload:members:${ctx.user.id}`, RateLimits.upload);
     const file = formData.get("file");
     if (!(file instanceof File)) {
       return { ok: false as const, error: "File required" };
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      return { ok: false as const, error: "File too large (max 8MB)" };
     }
     const typeRaw = String(formData.get("type") ?? "OTHER");
     const type = (Object.values(DocumentType) as string[]).includes(typeRaw)
       ? (typeRaw as DocumentType)
       : DocumentType.OTHER;
 
-    const bytes = Buffer.from(await file.arrayBuffer());
-    const key = `${ctx.organization.id}/${memberId}/${randomUUID()}-${file.name}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "members");
-    await mkdir(uploadDir, { recursive: true });
-    const diskPath = path.join(uploadDir, key.replaceAll("/", "__"));
-    await writeFile(diskPath, bytes);
-    const url = `/uploads/members/${path.basename(diskPath)}`;
+    const stored = await storePrivateUpload({
+      kind: "members",
+      organizationId: ctx.organization.id,
+      ownerId: memberId,
+      file,
+    });
 
     const doc = await uploadMemberDocument({
       organizationId: ctx.organization.id,
       memberId,
       actorUserId: ctx.user.id,
       type,
-      name: file.name,
-      mimeType: file.type || "application/octet-stream",
-      sizeBytes: file.size,
-      storageKey: key,
-      url,
+      name: stored.name,
+      mimeType: stored.mimeType,
+      sizeBytes: stored.sizeBytes,
+      storageKey: stored.storageKey,
+      url: null,
     });
+
+    const url = publicDownloadPath("members", doc.id);
+    await documentRepository.updateUrl(ctx.organization.id, doc.id, url);
+
     revalidatePath(`/people/${memberId}`);
-    return { ok: true as const, data: doc };
+    return { ok: true as const, data: { ...doc, url } };
   } catch (error) {
     return actionError(error);
   }
@@ -373,14 +385,21 @@ export async function uploadDocumentAction(memberId: string, formData: FormData)
 export async function quickActionLog(memberId: string, action: "email" | "call" | "whatsapp" | "visit" | "foundation", detail?: string) {
   try {
     const ctx = await requirePermission(Permission.PEOPLE_WRITE);
+    const parsed = z
+      .object({
+        memberId: z.string().min(1),
+        action: z.enum(["email", "call", "whatsapp", "visit", "foundation"]),
+        detail: z.string().max(500).optional(),
+      })
+      .parse({ memberId, action, detail });
     await logQuickAction({
       organizationId: ctx.organization.id,
-      memberId,
+      memberId: parsed.memberId,
       actorUserId: ctx.user.id,
-      action,
-      detail,
+      action: parsed.action,
+      detail: parsed.detail,
     });
-    revalidatePath(`/people/${memberId}`);
+    revalidatePath(`/people/${parsed.memberId}`);
     return { ok: true as const };
   } catch (error) {
     return actionError(error);
@@ -415,14 +434,19 @@ export async function recordAttendanceAction(memberId: string, raw: unknown) {
 export async function qrCheckInAction(qrToken: string, eventName: string) {
   try {
     const ctx = await requirePermission(Permission.PEOPLE_WRITE);
+    assertRateLimit(`checkin:people:${ctx.user.id}`, RateLimits.checkIn);
+    const parsed = z
+      .object({
+        qrToken: z.string().min(1).max(120),
+        eventName: z.string().min(1).max(120),
+      })
+      .parse({ qrToken, eventName });
     const member = await checkInByQr({
-      qrToken,
-      eventName,
+      organizationId: ctx.organization.id,
+      qrToken: parsed.qrToken,
+      eventName: parsed.eventName,
       actorUserId: ctx.user.id,
     });
-    if (member.organizationId !== ctx.organization.id) {
-      return { ok: false as const, error: "QR belongs to another organization" };
-    }
     revalidatePath(`/people/${member.id}`);
     return { ok: true as const, data: { memberId: member.id } };
   } catch (error) {
@@ -551,11 +575,11 @@ export async function saveFilterAction(name: string, definition: z.infer<typeof 
 
 export async function deleteFilterAction(id: string) {
   try {
-    const ctx = await requireTenantContext();
+    const ctx = await requirePermission(Permission.PEOPLE_READ);
     await deleteSavedFilter({
       organizationId: ctx.organization.id,
       userId: ctx.user.id,
-      id,
+      id: z.string().min(1).parse(id),
     });
     return { ok: true as const };
   } catch (error) {

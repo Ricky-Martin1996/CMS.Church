@@ -557,6 +557,7 @@ export const attendanceRecordRepository: AttendanceRecordRepository = {
   async searchMembersForCheckIn(organizationId, query, limit = 20) {
     const q = query.trim();
     if (!q) return [];
+    const take = Math.min(Math.max(1, limit), 50);
 
     const members = await prisma.member.findMany({
       where: {
@@ -569,7 +570,7 @@ export const attendanceRecordRepository: AttendanceRecordRepository = {
           { phone: { contains: q, mode: "insensitive" } },
         ],
       },
-      take: limit,
+      take,
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
       include: {
         householdLinks: {
@@ -601,6 +602,7 @@ export const attendanceRecordRepository: AttendanceRecordRepository = {
   async searchHouseholdsForCheckIn(organizationId, query, limit = 20) {
     const q = query.trim();
     if (!q) return [];
+    const take = Math.min(Math.max(1, limit), 50);
 
     const households = await prisma.household.findMany({
       where: {
@@ -611,7 +613,7 @@ export const attendanceRecordRepository: AttendanceRecordRepository = {
           { householdCode: { contains: q, mode: "insensitive" } },
         ],
       },
-      take: limit,
+      take,
       orderBy: { familyName: "asc" },
       include: {
         memberships: {

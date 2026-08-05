@@ -6,6 +6,8 @@ import {
 } from "@/server/auth/session";
 import { handleRouteError, jsonOk } from "@/server/http";
 import { listUserMemberships } from "@/application/organization/organization-service";
+import { assertSameOrigin } from "@/server/security/csrf";
+import { assertRateLimit, RateLimits } from "@/server/security/rate-limit";
 
 const switchSchema = z.object({
   organizationId: z.string().min(1),
@@ -13,6 +15,9 @@ const switchSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    assertSameOrigin(req);
+    const user = await requireDbUser();
+    assertRateLimit(`org-switch:${user.id}`, RateLimits.apiWrite);
     const body = switchSchema.parse(await req.json());
     const membership = await switchActiveOrganization(body.organizationId);
     return jsonOk({

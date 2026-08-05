@@ -16,7 +16,8 @@ import {
 } from "@/domain/enums/member";
 import { canWriteNoteVisibility, noteVisibilitiesForRole } from "@/domain/permissions/notes";
 import type { Role } from "@/domain/enums/role";
-import { forbidden, notFound } from "@/server/errors";
+import { forbidden, notFound, AppError } from "@/server/errors";
+import { requireMemberInOrg } from "@/server/tenant/scope";
 import {
   activityRepository,
   attendanceRepository,
@@ -31,6 +32,8 @@ import {
   volunteerRepository,
 } from "@/infrastructure/repositories";
 import { slugify } from "@/lib/slug";
+
+const MAX_CSV_IMPORT_ROWS = 1000;
 
 export async function ensureOrgTags(organizationId: string) {
   return tagRepository.ensureDefaults(organizationId);
@@ -238,6 +241,7 @@ export async function addMemberNote(input: {
   visibility: NoteVisibility;
   body: string;
 }) {
+  await requireMemberInOrg(input.organizationId, input.memberId);
   if (!canWriteNoteVisibility(input.role, input.visibility)) {
     throw forbidden("You cannot write notes at this visibility");
   }
@@ -270,6 +274,7 @@ export async function uploadMemberDocument(input: {
   storageKey: string;
   url?: string | null;
 }) {
+  await requireMemberInOrg(input.organizationId, input.memberId);
   const doc = await documentRepository.create({
     ...input,
     uploadedById: input.actorUserId,
@@ -293,6 +298,7 @@ export async function logQuickAction(input: {
   action: "email" | "call" | "whatsapp" | "visit" | "foundation";
   detail?: string;
 }) {
+  await requireMemberInOrg(input.organizationId, input.memberId);
   const map = {
     email: {
       type: ActivityType.EMAIL_SENT,
@@ -336,6 +342,7 @@ export async function recordAttendance(input: {
   attendedAt?: Date;
   method?: AttendanceMethod;
 }) {
+  await requireMemberInOrg(input.organizationId, input.memberId);
   await attendanceRepository.create({
     organizationId: input.organizationId,
     memberId: input.memberId,
@@ -359,14 +366,18 @@ export async function recordAttendance(input: {
 }
 
 export async function checkInByQr(input: {
+  organizationId: string;
   qrToken: string;
   eventName: string;
   actorUserId?: string | null;
 }) {
-  const member = await memberRepository.findByQrToken(input.qrToken);
+  const member = await memberRepository.findByQrToken(
+    input.organizationId,
+    input.qrToken
+  );
   if (!member) throw notFound("Invalid QR code");
   await recordAttendance({
-    organizationId: member.organizationId,
+    organizationId: input.organizationId,
     memberId: member.id,
     actorUserId: input.actorUserId,
     eventName: input.eventName,
@@ -381,6 +392,7 @@ export async function createPrayerRequest(input: {
   actorUserId: string;
   request: string;
 }) {
+  await requireMemberInOrg(input.organizationId, input.memberId);
   const prayer = await prayerRepository.create(input);
   await activityRepository.create({
     organizationId: input.organizationId,
@@ -401,6 +413,7 @@ export async function addVolunteerRole(input: {
   roleName: string;
   team?: string | null;
 }) {
+  await requireMemberInOrg(input.organizationId, input.memberId);
   const role = await volunteerRepository.create(input);
   await activityRepository.create({
     organizationId: input.organizationId,
@@ -430,6 +443,10 @@ export async function linkFamily(input: {
   relatedMemberId?: string | null;
   relatedRelation?: FamilyRelation;
 }) {
+  await requireMemberInOrg(input.organizationId, input.memberId);
+  if (input.relatedMemberId) {
+    await requireMemberInOrg(input.organizationId, input.relatedMemberId);
+  }
   const family = await familyRepository.upsertHousehold({
     organizationId: input.organizationId,
     memberId: input.memberId,
@@ -591,6 +608,13 @@ export async function importMembersCsv(input: {
   actorUserId: string;
   rows: CsvMemberRow[];
 }) {
+  if (input.rows.length > MAX_CSV_IMPORT_ROWS) {
+    throw new AppError(
+      `CSV import is limited to ${MAX_CSV_IMPORT_ROWS} rows per upload`,
+      "VALIDATION",
+      400
+    );
+  }
   let created = 0;
   const tags = await tagRepository.ensureDefaults(input.organizationId);
   const tagBySlug = new Map(tags.map((t) => [t.slug, t]));

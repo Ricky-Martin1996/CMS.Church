@@ -25,6 +25,7 @@ import {
   RecurrenceFrequency,
   RegistrantType,
 } from "@/domain/enums/event";
+import { httpUrlSchema } from "@/lib/http-url";
 import { Permission } from "@/domain/permissions/rbac";
 import { requirePermission } from "@/server/auth/session";
 import { AppError } from "@/server/errors";
@@ -109,7 +110,7 @@ export async function createChurchEventAction(raw: unknown) {
         title: z.string().min(1).max(200),
         slug: z.string().min(1).max(80).optional(),
         description: z.string().max(8000).optional(),
-        heroImageUrl: z.string().url().optional().or(z.literal("")),
+        heroImageUrl: httpUrlSchema.optional().or(z.literal("")),
         eventType: z.nativeEnum(ChurchEventType).optional(),
         visibility: z.nativeEnum(EventVisibility).optional(),
         startsAt: z.string().datetime(),
@@ -206,7 +207,7 @@ export async function updateChurchEventAction(raw: unknown) {
         eventId: z.string().min(1),
         title: z.string().min(1).max(200).optional(),
         description: z.string().max(8000).optional().nullable(),
-        heroImageUrl: z.string().url().optional().nullable().or(z.literal("")),
+        heroImageUrl: httpUrlSchema.optional().nullable().or(z.literal("")),
         eventType: z.nativeEnum(ChurchEventType).optional(),
         visibility: z.nativeEnum(EventVisibility).optional(),
         startsAt: z.string().datetime().optional(),

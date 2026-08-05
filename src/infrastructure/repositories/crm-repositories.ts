@@ -160,6 +160,20 @@ export const documentRepository: DocumentRepository = {
     return mapDocument(document);
   },
 
+  async getById(organizationId, id) {
+    const document = await prisma.memberDocument.findFirst({
+      where: { id, organizationId },
+    });
+    return document ? mapDocument(document) : null;
+  },
+
+  async updateUrl(organizationId, id, url) {
+    await prisma.memberDocument.updateMany({
+      where: { id, organizationId },
+      data: { url },
+    });
+  },
+
   async listForMember(organizationId, memberId) {
     const documents = await prisma.memberDocument.findMany({
       where: { organizationId, memberId },

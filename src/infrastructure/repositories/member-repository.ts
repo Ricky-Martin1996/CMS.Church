@@ -575,9 +575,9 @@ export const memberRepository: MemberRepository = {
     return members.map(mapMember);
   },
 
-  async findByQrToken(qrToken) {
+  async findByQrToken(organizationId, qrToken) {
     const member = await prisma.member.findFirst({
-      where: { qrToken, deletedAt: null },
+      where: { organizationId, qrToken, deletedAt: null },
     });
     return member ? mapMember(member) : null;
   },

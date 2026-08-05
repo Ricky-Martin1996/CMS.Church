@@ -28,6 +28,7 @@ import {
   updateMemberAction,
   uploadDocumentAction,
 } from "@/application/people/actions";
+import { safeBackgroundImage } from "@/lib/safe-url";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -180,6 +181,7 @@ export function MemberProfileView({
   const [tab, setTab] = useState<TabId>("overview");
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const coverBackground = safeBackgroundImage(profile.coverUrl);
 
   const refresh = () => {
     window.location.reload();
@@ -240,16 +242,16 @@ export function MemberProfileView({
           <div
             className="h-40 sm:h-52"
             style={
-              profile.coverUrl
+              coverBackground
                 ? {
-                    backgroundImage: `url(${profile.coverUrl})`,
+                    backgroundImage: coverBackground,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                   }
                 : undefined
             }
           >
-            {!profile.coverUrl && (
+            {!coverBackground && (
               <div
                 className="h-full w-full opacity-80"
                 style={{

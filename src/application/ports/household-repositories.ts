@@ -175,6 +175,15 @@ export type HouseholdDocumentRepository = {
     url?: string | null;
     uploadedById?: string | null;
   }): Promise<HouseholdDocumentEntity>;
+  getById(
+    organizationId: string,
+    id: string
+  ): Promise<HouseholdDocumentEntity | null>;
+  updateUrl(
+    organizationId: string,
+    id: string,
+    url: string
+  ): Promise<void>;
   listForHousehold(
     organizationId: string,
     householdId: string

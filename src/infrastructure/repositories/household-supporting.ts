@@ -100,6 +100,20 @@ export const householdDocumentRepository: HouseholdDocumentRepository = {
     return mapHouseholdDocument(document);
   },
 
+  async getById(organizationId, id) {
+    const document = await prisma.householdDocument.findFirst({
+      where: { id, organizationId },
+    });
+    return document ? mapHouseholdDocument(document) : null;
+  },
+
+  async updateUrl(organizationId, id, url) {
+    await prisma.householdDocument.updateMany({
+      where: { id, organizationId },
+      data: { url },
+    });
+  },
+
   async listForHousehold(organizationId, householdId) {
     const documents = await prisma.householdDocument.findMany({
       where: { organizationId, householdId },

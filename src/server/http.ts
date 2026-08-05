@@ -12,9 +12,13 @@ export function jsonCreated<T>(data: T) {
 
 export function handleRouteError(error: unknown) {
   if (error instanceof AppError) {
+    const headers =
+      error.code === "RATE_LIMITED"
+        ? { "Retry-After": "60" }
+        : undefined;
     return NextResponse.json(
       { error: { code: error.code, message: error.message } },
-      { status: error.status }
+      { status: error.status, headers }
     );
   }
 

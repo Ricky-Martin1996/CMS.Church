@@ -3,6 +3,9 @@
 See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for Clean Architecture,
 multi-tenancy, RBAC, and Clerk auth details.
 
+See [docs/SECURITY.md](./docs/SECURITY.md) for the security audit findings
+and remediations.
+
 ## Getting started
 
 ```bash
