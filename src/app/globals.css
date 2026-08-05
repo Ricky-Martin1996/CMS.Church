@@ -1,0 +1,257 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+/* ChurchOS design tokens — calm slate + soft teal, trustworthy & elegant */
+:root {
+  --radius: 1.5rem;
+  --radius-sm: 0.75rem;
+  --radius-lg: 2rem;
+
+  --background: 42 33% 97%;
+  --foreground: 215 28% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 215 28% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 28% 14%;
+  --primary: 174 42% 32%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 24% 94%;
+  --secondary-foreground: 215 25% 27%;
+  --muted: 210 20% 95%;
+  --muted-foreground: 215 12% 46%;
+  --accent: 174 30% 92%;
+  --accent-foreground: 174 45% 24%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 152 45% 36%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --border: 214 20% 88%;
+  --input: 214 20% 88%;
+  --ring: 174 42% 32%;
+
+  --glass: 0 0% 100% / 0.62;
+  --glass-border: 214 24% 80% / 0.55;
+  --glass-strong: 0 0% 100% / 0.78;
+
+  --aurora-1: 174 55% 72%;
+  --aurora-2: 200 70% 78%;
+  --aurora-3: 38 70% 82%;
+  --aurora-4: 215 40% 86%;
+
+  --sidebar: 210 25% 96% / 0.72;
+  --chart-1: 174 42% 36%;
+  --chart-2: 200 55% 48%;
+  --chart-3: 38 70% 52%;
+  --chart-4: 215 30% 55%;
+  --chart-5: 152 40% 42%;
+
+  --shadow-soft: 0 8px 32px hsl(215 28% 14% / 0.06);
+  --shadow-float: 0 16px 48px hsl(215 28% 14% / 0.1);
+}
+
+.dark {
+  --background: 220 28% 7%;
+  --foreground: 210 30% 96%;
+  --card: 220 24% 10%;
+  --card-foreground: 210 30% 96%;
+  --popover: 220 24% 11%;
+  --popover-foreground: 210 30% 96%;
+  --primary: 174 48% 48%;
+  --primary-foreground: 220 28% 7%;
+  --secondary: 220 20% 16%;
+  --secondary-foreground: 210 25% 90%;
+  --muted: 220 18% 14%;
+  --muted-foreground: 215 12% 62%;
+  --accent: 174 25% 16%;
+  --accent-foreground: 174 45% 72%;
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 152 50% 42%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 55%;
+  --border: 220 16% 18%;
+  --input: 220 16% 18%;
+  --ring: 174 48% 48%;
+
+  --glass: 220 24% 12% / 0.55;
+  --glass-border: 210 20% 70% / 0.12;
+  --glass-strong: 220 24% 12% / 0.78;
+
+  --aurora-1: 174 50% 28%;
+  --aurora-2: 210 55% 30%;
+  --aurora-3: 38 45% 28%;
+  --aurora-4: 250 30% 22%;
+
+  --sidebar: 220 24% 10% / 0.7;
+  --chart-1: 174 48% 52%;
+  --chart-2: 200 60% 58%;
+  --chart-3: 38 75% 58%;
+  --chart-4: 215 40% 65%;
+  --chart-5: 152 45% 50%;
+
+  --shadow-soft: 0 8px 32px hsl(0 0% 0% / 0.35);
+  --shadow-float: 0 16px 48px hsl(0 0% 0% / 0.45);
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+  --radius-sm: calc(var(--radius) - 0.75rem);
+  --radius-md: calc(var(--radius) - 0.5rem);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius-lg);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-geist);
+  --font-mono: var(--font-geist-mono);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth antialiased;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "ss01" on, "cv11" on;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: hsl(var(--glass));
+    border: 1px solid hsl(var(--glass-border));
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .glass-strong {
+    background: hsl(var(--glass-strong));
+    border: 1px solid hsl(var(--glass-border));
+    backdrop-filter: blur(28px) saturate(1.5);
+    -webkit-backdrop-filter: blur(28px) saturate(1.5);
+    box-shadow: var(--shadow-float);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .font-display {
+    font-family: var(--font-geist), var(--font-inter), system-ui, sans-serif;
+  }
+}
+
+/* Aurora background animation — calm, slow, premium */
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate(0%, 0%) scale(1);
+    opacity: 0.55;
+  }
+  33% {
+    transform: translate(8%, -6%) scale(1.08);
+    opacity: 0.7;
+  }
+  66% {
+    transform: translate(-6%, 8%) scale(0.96);
+    opacity: 0.5;
+  }
+}
+
+@keyframes aurora-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  will-change: transform, opacity;
+  animation: aurora-drift 22s ease-in-out infinite;
+}
+
+.aurora-blob:nth-child(2) {
+  animation-duration: 28s;
+  animation-delay: -6s;
+}
+
+.aurora-blob:nth-child(3) {
+  animation-duration: 32s;
+  animation-delay: -12s;
+}
+
+.aurora-blob:nth-child(4) {
+  animation: aurora-pulse 18s ease-in-out infinite;
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.08) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob,
+  .skeleton-shimmer {
+    animation: none !important;
+  }
+}
