@@ -1,8 +1,17 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { OrganizationSwitcher } from "@/components/auth/organization-switcher";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { navItems } from "@/lib/data";
 import {
   CalendarDays,
   ChevronLeft,
@@ -14,17 +23,9 @@ import {
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { navItems } from "@/lib/data";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 
 const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
   LayoutDashboard,
@@ -147,6 +148,9 @@ export function Sidebar({
       </ScrollArea>
 
       <div className={cn("p-3", collapsed && "px-2")}>
+        <div className="mb-2">
+          <OrganizationSwitcher collapsed={collapsed} />
+        </div>
         <AnimatePresence initial={false}>
           {!collapsed && (
             <motion.div

@@ -1,11 +1,11 @@
 "use client";
 
-import { Bell, Menu, Search, Sparkles } from "lucide-react";
+import { Bell, Menu, Search } from "lucide-react";
 import { motion } from "framer-motion";
+import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { AccentPicker } from "@/components/layout/accent-picker";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -84,17 +84,14 @@ export function Topbar({
 
         <ThemeToggle />
 
-        <div className="ml-1 flex items-center gap-2 rounded-2xl border border-border/50 bg-background/30 py-1 pl-1 pr-2.5">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs">AP</AvatarFallback>
-          </Avatar>
-          <div className="hidden sm:block">
-            <p className="text-xs font-medium leading-none">Pastor Alex</p>
-            <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Sparkles className="h-2.5 w-2.5 text-primary" />
-              Admin
-            </p>
-          </div>
+        <div className="ml-1 flex items-center">
+          <UserButton
+            appearance={{
+              elements: {
+                avatarBox: "h-8 w-8 rounded-xl",
+              },
+            }}
+          />
         </div>
       </div>
     </motion.header>
