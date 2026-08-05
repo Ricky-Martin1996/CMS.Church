@@ -4,12 +4,15 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import {
+  CalendarClock,
   CalendarDays,
   ClipboardCheck,
+  HandHeart,
   HeartHandshake,
   Home,
   LayoutDashboard,
   Settings,
+  Sparkles,
   Users,
   UserRoundPlus,
   UsersRound,
@@ -26,6 +29,9 @@ const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
   Home,
   ClipboardCheck,
   UserRoundPlus,
+  Sparkles,
+  HandHeart,
+  CalendarClock,
   CalendarDays,
   HeartHandshake,
   UsersRound,

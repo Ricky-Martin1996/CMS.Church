@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  CalendarClock,
   CalendarDays,
   CalendarPlus,
   ClipboardCheck,
@@ -50,6 +51,9 @@ const quickIcons = {
   UserRoundPlus,
   Home,
   ClipboardCheck,
+  Sparkles,
+  HandHeart,
+  CalendarClock,
   CalendarPlus,
   HandCoins,
   UsersRound,

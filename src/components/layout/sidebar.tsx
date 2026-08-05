@@ -13,14 +13,17 @@ import {
 import { cn } from "@/lib/utils";
 import { navItems } from "@/lib/data";
 import {
+  CalendarClock,
   CalendarDays,
   ChevronLeft,
   Church,
   ClipboardCheck,
+  HandHeart,
   HeartHandshake,
   Home,
   LayoutDashboard,
   Settings,
+  Sparkles,
   Users,
   UserRoundPlus,
   UsersRound,
@@ -36,6 +39,9 @@ const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
   Home,
   ClipboardCheck,
   UserRoundPlus,
+  Sparkles,
+  HandHeart,
+  CalendarClock,
   CalendarDays,
   HeartHandshake,
   UsersRound,
