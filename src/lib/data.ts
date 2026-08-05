@@ -385,6 +385,7 @@ export const groups = [
 export const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" },
   { href: "/people", label: "People", icon: "Users" },
+  { href: "/households", label: "Households", icon: "Home" },
   { href: "/events", label: "Events", icon: "CalendarDays" },
   { href: "/giving", label: "Giving", icon: "HeartHandshake" },
   { href: "/groups", label: "Groups", icon: "UsersRound" },
@@ -393,6 +394,7 @@ export const navItems = [
 
 export const quickActions = [
   { id: "1", label: "Add person", href: "/people", icon: "UserPlus" },
+  { id: "5", label: "Add household", href: "/households", icon: "Home" },
   { id: "2", label: "Create event", href: "/events", icon: "CalendarPlus" },
   { id: "3", label: "Record gift", href: "/giving", icon: "HandCoins" },
   { id: "4", label: "New group", href: "/groups", icon: "UsersRound" },

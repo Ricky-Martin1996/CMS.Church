@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   Church,
   HeartHandshake,
+  Home,
   LayoutDashboard,
   Settings,
   Users,
@@ -30,6 +31,7 @@ import { AnimatePresence, motion } from "framer-motion";
 const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
   LayoutDashboard,
   Users,
+  Home,
   CalendarDays,
   HeartHandshake,
   UsersRound,

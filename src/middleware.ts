@@ -11,6 +11,7 @@ const isPublicRoute = createRouteMatcher([
 const isAppRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/people(.*)",
+  "/households(.*)",
   "/events(.*)",
   "/giving(.*)",
   "/groups(.*)",

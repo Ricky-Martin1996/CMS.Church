@@ -6,6 +6,7 @@ import {
   CalendarPlus,
   HandCoins,
   HeartHandshake,
+  Home,
   MessageSquare,
   Sparkles,
   UserPlus,
@@ -44,6 +45,7 @@ const activityIcons = {
 
 const quickIcons = {
   UserPlus,
+  Home,
   CalendarPlus,
   HandCoins,
   UsersRound,

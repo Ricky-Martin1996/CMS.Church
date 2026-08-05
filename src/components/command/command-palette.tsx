@@ -6,6 +6,7 @@ import { Command } from "cmdk";
 import {
   CalendarDays,
   HeartHandshake,
+  Home,
   LayoutDashboard,
   Settings,
   Users,
@@ -20,6 +21,7 @@ import { navItems } from "@/lib/data";
 const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
   LayoutDashboard,
   Users,
+  Home,
   CalendarDays,
   HeartHandshake,
   UsersRound,
@@ -28,6 +30,7 @@ const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
 
 const actions = [
   { name: "Add person", href: "/people", icon: Plus },
+  { name: "Add household", href: "/households", icon: Home },
   { name: "Create event", href: "/events", icon: Plus },
   { name: "Record gift", href: "/giving", icon: Plus },
 ];
