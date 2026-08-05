@@ -9,6 +9,7 @@ src/
     people/               # Members CRM services + server actions
     households/           # Family & Household Management
     attendance/           # Attendance & Check-in
+    visitors/             # Visitor Journey & Follow-up
   infrastructure/         # Prisma, repositories
   server/                 # Next.js server helpers (auth, rbac, tenant scope)
   app/                    # Presentation (App Router)
@@ -39,6 +40,8 @@ CRM permissions: `people:read|write|export|import`, note visibility,
 Household permissions: `households:read|write|delete|merge|export|import`.
 
 Attendance permissions: `attendance:read|write|manage|export|sessions`.
+
+Visitor permissions: `visitor:read|write|assign|communicate|convert`.
 
 ## Auth flow
 
@@ -82,9 +85,28 @@ Service-day attendance platform with live sessions.
 - Sessions: `/attendance/sessions` — create, start (LIVE), close, export CSV
 - Models: `AttendanceSession`, `AttendanceRecord`, `Visitor`, `VisitorAttendance`
 - Methods: QR · Search · Household · Manual · Visitor · Volunteer
-- Duplicate prevention per session · activity timeline on check-in
-- Legacy CRM attendance (no sessionId) still powers member/household trend charts
+- New visitor check-in bootstraps a Visitor Journey automatically
 - Server actions: `src/application/attendance/actions.ts`
+
+## Visitor Journey & Follow-up
+
+Structured pipeline from first visit to membership.
+
+Pipeline stages (org-configurable via `VisitorStageConfig`):
+
+First Visit → Welcome Sent → Assigned Leader → Contacted → Second Visit →
+Cell Group Invited → Foundation Course → Membership Interview → Member
+
+- Dashboard: `/visitors` — KPIs, funnel, recent communications
+- Kanban: `/visitors/pipeline` — stage board with advance/move
+- Profile: `/visitors/[id]` — timeline, tasks, communications, convert
+- Tasks: `/visitors/tasks` — open/overdue follow-ups
+- Models: `VisitorJourney`, `FollowUpTask`, `CommunicationLog`,
+  `VisitorStatusHistory`, `VisitorActivity`, `VisitorStageConfig`
+- Auto tasks on stage entry (`automationKey` for idempotent automation)
+- Communication logs carry `metadata` for future WhatsApp/email providers
+- Convert creates a CRM `Member` and completes the journey
+- Server actions: `src/application/visitors/actions.ts`
 
 ## Setup
 

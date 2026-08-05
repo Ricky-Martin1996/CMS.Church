@@ -59,6 +59,14 @@ Open [http://localhost:3000](http://localhost:3000).
 - Live session counters, duplicate prevention, visitor journey foundation
 - RBAC: `attendance:read|write|manage|export|sessions`
 
+## Visitor Journey & Follow-up
+
+- `/visitors` dashboard · `/visitors/pipeline` Kanban · `/visitors/[id]` · `/visitors/tasks`
+- Configurable pipeline from First Visit → Member with auto follow-up tasks
+- Communication log (phone/email/WhatsApp/SMS) · convert to CRM member
+- Automation-ready (`automationKey`, provider metadata hooks)
+- RBAC: `visitor:read|write|assign|communicate|convert`
+
 ## Product UI
 
 - Glassmorphism UI with aurora animated backgrounds
