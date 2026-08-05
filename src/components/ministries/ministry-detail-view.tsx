@@ -36,7 +36,6 @@ import {
   MINISTRY_STATUS_LABELS,
   SCHEDULE_EVENT_TYPE_LABELS,
 } from "@/domain/enums/ministry";
-import { cn } from "@/lib/utils";
 
 type SerializedMinistry = Omit<MinistryEntity, "createdAt" | "updatedAt"> & {
   createdAt: string;
