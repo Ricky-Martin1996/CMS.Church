@@ -10,6 +10,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =============================================================================
+// Platform / tenancy
+// =============================================================================
+
 enum Role {
   SUPER_ADMIN
   CHURCH_ADMIN
@@ -38,7 +42,11 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  memberships Membership[]
+  memberships      Membership[]
+  authoredNotes    MemberNote[]       @relation("NoteAuthor")
+  authoredActivity MemberActivity[]   @relation("ActivityActor")
+  savedFilters     SavedMemberFilter[]
+  listPreferences  MemberListPreference[]
 
   @@index([email])
   @@map("users")
@@ -54,7 +62,19 @@ model Organization {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  memberships Membership[]
+  memberships      Membership[]
+  members          Member[]
+  tags             Tag[]
+  households       Household[]
+  memberNotes      MemberNote[]
+  memberDocuments  MemberDocument[]
+  memberActivities MemberActivity[]
+  attendance       AttendanceRecord[]
+  givingRecords    GivingRecord[]
+  prayerRequests   PrayerRequest[]
+  volunteerRoles   VolunteerAssignment[]
+  savedFilters     SavedMemberFilter[]
+  listPreferences  MemberListPreference[]
 
   @@index([slug])
   @@map("organizations")
@@ -78,4 +98,403 @@ model Membership {
   @@index([userId])
   @@index([organizationId, role])
   @@map("memberships")
+}
+
+// =============================================================================
+// CRM — Members
+// =============================================================================
+
+enum MemberStatus {
+  ACTIVE
+  VISITOR
+  INACTIVE
+  NEW_MEMBER
+  TRANSFERRED
+  DECEASED
+}
+
+enum MemberLifecycle {
+  PROSPECT
+  VISITOR
+  REGULAR
+  MEMBER
+  LEADER
+  ALUMNI
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  WIDOWED
+  DIVORCED
+  SEPARATED
+  UNKNOWN
+}
+
+enum NoteVisibility {
+  PRIVATE
+  PASTORAL
+  LEADER
+}
+
+enum DocumentType {
+  ID
+  CERTIFICATE
+  BAPTISM
+  MEMBERSHIP
+  OTHER
+}
+
+enum ActivityType {
+  CREATED
+  EDITED
+  VISITED
+  ATTENDED
+  PRAYER_REQUESTED
+  BAPTIZED
+  FOUNDATION_COURSE_COMPLETED
+  VOLUNTEER_JOINED
+  NOTE_ADDED
+  DOCUMENT_UPLOADED
+  TAG_ADDED
+  TAG_REMOVED
+  FAMILY_LINKED
+  EMAIL_SENT
+  CALL_LOGGED
+  WHATSAPP_SENT
+  LEADER_ASSIGNED
+  STATUS_CHANGED
+  IMPORTED
+}
+
+enum FamilyRelation {
+  HEAD
+  SPOUSE
+  CHILD
+  PARENT
+  SIBLING
+  OTHER
+}
+
+enum AttendanceMethod {
+  MANUAL
+  QR
+  IMPORT
+}
+
+enum PrayerStatus {
+  OPEN
+  PRAYING
+  ANSWERED
+  ARCHIVED
+}
+
+enum VolunteerStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+/// Congregant CRM record (distinct from platform Membership / Role.MEMBER).
+model Member {
+  id               String          @id @default(cuid())
+  organizationId   String
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String?
+  whatsapp         String?
+  avatarUrl        String?
+  coverUrl         String?
+  status           MemberStatus    @default(VISITOR)
+  lifecycle        MemberLifecycle @default(VISITOR)
+  gender           Gender?
+  maritalStatus    MaritalStatus   @default(UNKNOWN)
+  dateOfBirth      DateTime?
+  baptismDate      DateTime?
+  joinedAt         DateTime?
+  campus           String?
+  ministryRole     String?
+  addressLine1     String?
+  addressLine2     String?
+  city             String?
+  state            String?
+  postalCode       String?
+  country          String?
+  emergencyName    String?
+  emergencyPhone   String?
+  emergencyRelation String?
+  assignedLeaderId String?
+  linkedUserId     String?
+  engagementScore  Int             @default(0)
+  growthScore      Int             @default(0)
+  riskScore        Int             @default(0)
+  aiSummary        String?
+  aiInsights       Json?
+  qrToken          String          @unique @default(cuid())
+  customFields     Json?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedLeader Member?    @relation("MemberLeader", fields: [assignedLeaderId], references: [id], onDelete: SetNull)
+  ledMembers     Member[]   @relation("MemberLeader")
+
+  tags          MemberTag[]
+  householdLinks FamilyMember[]
+  notes         MemberNote[]
+  documents     MemberDocument[]
+  activities    MemberActivity[]
+  attendance    AttendanceRecord[]
+  giving        GivingRecord[]
+  prayers       PrayerRequest[]
+  volunteers    VolunteerAssignment[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, lastName, firstName])
+  @@index([organizationId, email])
+  @@index([organizationId, deletedAt])
+  @@index([assignedLeaderId])
+  @@index([qrToken])
+  @@map("members")
+}
+
+model Tag {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  color          String   @default("#0d9488")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      MemberTag[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("tags")
+}
+
+model MemberTag {
+  id        String   @id @default(cuid())
+  memberId  String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, tagId])
+  @@index([tagId])
+  @@map("member_tags")
+}
+
+model Household {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  addressLine1   String?
+  addressLine2   String?
+  city           String?
+  state          String?
+  postalCode     String?
+  country        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      FamilyMember[]
+
+  @@index([organizationId])
+  @@map("households")
+}
+
+model FamilyMember {
+  id          String         @id @default(cuid())
+  householdId String
+  memberId    String
+  relation    FamilyRelation @default(OTHER)
+  isPrimary   Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, memberId])
+  @@index([memberId])
+  @@map("family_members")
+}
+
+model MemberNote {
+  id             String         @id @default(cuid())
+  organizationId String
+  memberId       String
+  authorUserId   String
+  visibility     NoteVisibility @default(PRIVATE)
+  body           String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  author       User         @relation("NoteAuthor", fields: [authorUserId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, memberId])
+  @@index([memberId, visibility])
+  @@map("member_notes")
+}
+
+model MemberDocument {
+  id             String       @id @default(cuid())
+  organizationId String
+  memberId       String
+  type           DocumentType @default(OTHER)
+  name           String
+  mimeType       String
+  sizeBytes      Int
+  storageKey     String
+  url            String?
+  uploadedById   String?
+  createdAt      DateTime     @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, memberId])
+  @@map("member_documents")
+}
+
+model MemberActivity {
+  id             String       @id @default(cuid())
+  organizationId String
+  memberId       String
+  type           ActivityType
+  title          String
+  description    String?
+  metadata       Json?
+  actorUserId    String?
+  occurredAt     DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  actor        User?        @relation("ActivityActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, memberId, occurredAt])
+  @@index([memberId, type])
+  @@map("member_activities")
+}
+
+model AttendanceRecord {
+  id             String           @id @default(cuid())
+  organizationId String
+  memberId       String
+  eventName      String
+  attendedAt     DateTime
+  method         AttendanceMethod @default(MANUAL)
+  notes          String?
+  createdAt      DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, memberId, attendedAt])
+  @@map("attendance_records")
+}
+
+model GivingRecord {
+  id             String   @id @default(cuid())
+  organizationId String
+  memberId       String
+  amountCents    Int
+  fund           String   @default("General")
+  givenAt        DateTime
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, memberId, givenAt])
+  @@map("giving_records")
+}
+
+model PrayerRequest {
+  id             String       @id @default(cuid())
+  organizationId String
+  memberId       String
+  request        String
+  status         PrayerStatus @default(OPEN)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  answeredAt     DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, memberId])
+  @@map("prayer_requests")
+}
+
+model VolunteerAssignment {
+  id             String          @id @default(cuid())
+  organizationId String
+  memberId       String
+  roleName       String
+  team           String?
+  status         VolunteerStatus @default(ACTIVE)
+  startedAt      DateTime        @default(now())
+  endedAt        DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, memberId])
+  @@map("volunteer_assignments")
+}
+
+model SavedMemberFilter {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  name           String
+  definition     Json
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userId])
+  @@map("saved_member_filters")
+}
+
+model MemberListPreference {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  columns        Json
+  density        String   @default("comfortable")
+  viewMode       String   @default("table")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("member_list_preferences")
 }

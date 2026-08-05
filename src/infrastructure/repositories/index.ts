@@ -122,6 +122,21 @@ export const organizationRepository: OrganizationRepository = {
   },
 };
 
+export { memberRepository } from "@/infrastructure/repositories/member-repository";
+export {
+  activityRepository,
+  attendanceRepository,
+  documentRepository,
+  familyRepository,
+  givingRepository,
+  listPreferenceRepository,
+  noteRepository,
+  prayerRepository,
+  savedFilterRepository,
+  tagRepository,
+  volunteerRepository,
+} from "@/infrastructure/repositories/crm-repositories";
+
 export const membershipRepository: MembershipRepository = {
   async findByUserAndOrg(userId, organizationId) {
     const m = await prisma.membership.findUnique({
