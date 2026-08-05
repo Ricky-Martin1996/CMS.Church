@@ -135,6 +135,11 @@ export function AttendanceDashboardView() {
                   Manage Sessions
                 </Link>
               </Button>
+              <Button variant="ghost" size="lg" asChild>
+                <Link href="/visitors">
+                  Visitor Journey →
+                </Link>
+              </Button>
             </div>
           </div>
         </div>

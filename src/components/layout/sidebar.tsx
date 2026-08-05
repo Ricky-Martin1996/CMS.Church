@@ -22,6 +22,7 @@ import {
   LayoutDashboard,
   Settings,
   Users,
+  UserRoundPlus,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
   Users,
   Home,
   ClipboardCheck,
+  UserRoundPlus,
   CalendarDays,
   HeartHandshake,
   UsersRound,

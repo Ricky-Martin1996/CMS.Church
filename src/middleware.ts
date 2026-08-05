@@ -13,6 +13,7 @@ const isAppRoute = createRouteMatcher([
   "/people(.*)",
   "/households(.*)",
   "/attendance(.*)",
+  "/visitors(.*)",
   "/events(.*)",
   "/giving(.*)",
   "/groups(.*)",

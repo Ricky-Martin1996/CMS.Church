@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Sparkles,
   UserPlus,
+  UserRoundPlus,
   UsersRound,
   Cake,
   HandHeart,
@@ -46,6 +47,7 @@ const activityIcons = {
 
 const quickIcons = {
   UserPlus,
+  UserRoundPlus,
   Home,
   ClipboardCheck,
   CalendarPlus,
