@@ -14,10 +14,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { navItems } from "@/lib/data";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
-const icons: Record<string, LucideIcon> = {
+const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
   LayoutDashboard,
   Users,
   CalendarDays,
@@ -25,15 +26,6 @@ const icons: Record<string, LucideIcon> = {
   UsersRound,
   Settings,
 };
-
-const items = [
-  { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" },
-  { href: "/people", label: "People", icon: "Users" },
-  { href: "/events", label: "Events", icon: "CalendarDays" },
-  { href: "/giving", label: "Giving", icon: "HeartHandshake" },
-  { href: "/groups", label: "Groups", icon: "UsersRound" },
-  { href: "/settings", label: "Settings", icon: "Settings" },
-];
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -56,7 +48,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <ScrollArea className="flex-1 px-3 py-4">
         <nav aria-label="Primary" className="space-y-1">
-          {items.map((item) => {
+          {navItems.map((item) => {
             const Icon = icons[item.icon];
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);

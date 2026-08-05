@@ -12,17 +12,19 @@ import {
   UsersRound,
   Plus,
   Search,
+  type LucideIcon,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { navItems } from "@/lib/data";
 
-const pages = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "People", href: "/people", icon: Users },
-  { name: "Events", href: "/events", icon: CalendarDays },
-  { name: "Giving", href: "/giving", icon: HeartHandshake },
-  { name: "Groups", href: "/groups", icon: UsersRound },
-  { name: "Settings", href: "/settings", icon: Settings },
-];
+const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
+  LayoutDashboard,
+  Users,
+  CalendarDays,
+  HeartHandshake,
+  UsersRound,
+  Settings,
+};
 
 const actions = [
   { name: "Add person", href: "/people", icon: Plus },
@@ -89,17 +91,20 @@ export function CommandPalette({
               heading="Navigate"
               className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground"
             >
-              {pages.map((page) => (
-                <Command.Item
-                  key={page.href}
-                  value={page.name}
-                  onSelect={() => go(page.href)}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm data-[selected=true]:bg-accent"
-                >
-                  <page.icon className="h-4 w-4 text-muted-foreground" />
-                  {page.name}
-                </Command.Item>
-              ))}
+              {navItems.map((page) => {
+                const Icon = icons[page.icon];
+                return (
+                  <Command.Item
+                    key={page.href}
+                    value={page.label}
+                    onSelect={() => go(page.href)}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm data-[selected=true]:bg-accent"
+                  >
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    {page.label}
+                  </Command.Item>
+                );
+              })}
             </Command.Group>
             <Command.Group
               heading="Quick actions"

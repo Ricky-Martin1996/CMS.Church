@@ -46,13 +46,17 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```
 src/
-  app/(app)/          # Authenticated app routes
+  app/(app)/          # App routes (server pages + metadata)
   components/
-    ui/               # Primitives (button, card, dialog…)
+    ui/               # shadcn/ui primitives
     layout/           # Shell, sidebar, topbar, theme
     dashboard/        # Charts, stats, activity
     command/          # Command palette
     motion/           # Aurora + transitions
     shared/           # Empty / loading / error / success
+    people|events|…/  # Feature views
+  hooks/              # Shared hooks
   lib/                # Utils + mock data
 ```
+
+shadcn/ui is configured via `components.json` (New York style, CSS variables, Lucide icons).
