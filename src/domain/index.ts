@@ -24,6 +24,9 @@ export {
   ActivityType,
   FamilyRelation,
   AttendanceMethod,
+  AttendanceSessionType,
+  AttendanceSessionStatus,
+  AttendanceCheckStatus,
   PrayerStatus,
   VolunteerStatus,
   HouseholdStatus,
@@ -34,6 +37,10 @@ export {
   HOUSEHOLD_STATUS_LABELS,
   HOUSEHOLD_ACTIVITY_LABELS,
   NOTE_VISIBILITY_LABELS,
+  ATTENDANCE_METHOD_LABELS,
+  ATTENDANCE_SESSION_TYPE_LABELS,
+  ATTENDANCE_SESSION_STATUS_LABELS,
+  ATTENDANCE_CHECK_STATUS_LABELS,
   DEFAULT_TAGS,
 } from "@/domain/enums/member";
 export type {
@@ -68,3 +75,24 @@ export type {
   HouseholdListColumn,
 } from "@/domain/entities/household";
 export { DEFAULT_HOUSEHOLD_COLUMNS } from "@/domain/entities/household";
+export type {
+  AttendanceSessionEntity,
+  AttendanceRecordEntity,
+  VisitorEntity,
+  VisitorAttendanceEntity,
+  SessionLiveStats,
+  AttendanceDashboard,
+  AttendanceAnalytics,
+  CheckInResult,
+  CheckInMemberResult,
+  CheckInHouseholdResult,
+  HouseholdCheckInPreview,
+  HouseholdCheckInMemberPreview,
+  QrCheckInResult,
+  RecentCheckIn,
+  MemberCheckInSearchResult,
+  HouseholdCheckInSearchResult,
+  ListSessionsQuery,
+  CreateSessionInput,
+  UpdateSessionInput,
+} from "@/domain/entities/attendance";

@@ -144,6 +144,11 @@ export {
   householdNoteRepository,
   householdSavedFilterRepository,
 } from "@/infrastructure/repositories/household-supporting";
+export {
+  attendanceSessionRepository,
+  attendanceRecordRepository,
+  visitorRepository,
+} from "@/infrastructure/repositories/attendance-repository";
 
 export const membershipRepository: MembershipRepository = {
   async findByUserAndOrg(userId, organizationId) {

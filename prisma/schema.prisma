@@ -82,6 +82,9 @@ model Organization {
   householdDocuments HouseholdDocument[]
   savedHouseholdFilters SavedHouseholdFilter[]
   householdListPreferences HouseholdListPreference[]
+  attendanceSessions AttendanceSession[]
+  visitors         Visitor[]
+  visitorAttendances VisitorAttendance[]
 
   @@index([slug])
   @@map("organizations")
@@ -229,6 +232,34 @@ enum AttendanceMethod {
   MANUAL
   QR
   IMPORT
+  SEARCH
+  HOUSEHOLD
+  VISITOR
+  VOLUNTEER
+}
+
+enum AttendanceSessionType {
+  SUNDAY
+  YOUTH
+  PRAYER
+  CELL_GROUP
+  EVENT
+  VOLUNTEER
+  OTHER
+}
+
+enum AttendanceSessionStatus {
+  SCHEDULED
+  LIVE
+  CLOSED
+  CANCELLED
+}
+
+enum AttendanceCheckStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
 }
 
 enum PrayerStatus {
@@ -375,6 +406,7 @@ model Household {
   activities   HouseholdActivity[]
   householdNotes HouseholdNote[]
   documents    HouseholdDocument[]
+  attendanceRecords AttendanceRecord[]
 
   @@unique([organizationId, householdCode])
   @@index([organizationId])
@@ -555,21 +587,106 @@ model MemberActivity {
   @@map("member_activities")
 }
 
+model AttendanceSession {
+  id               String                  @id @default(cuid())
+  organizationId   String
+  serviceName      String
+  campus           String?
+  ministry         String?
+  date             DateTime
+  startTime        DateTime?
+  endTime          DateTime?
+  attendanceType   AttendanceSessionType   @default(SUNDAY)
+  status           AttendanceSessionStatus @default(SCHEDULED)
+  expectedCount    Int?
+  notes            String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  organization       Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  records            AttendanceRecord[]
+  visitorAttendances VisitorAttendance[]
+
+  @@index([organizationId, date])
+  @@index([organizationId, status])
+  @@index([organizationId, attendanceType])
+  @@map("attendance_sessions")
+}
+
 model AttendanceRecord {
-  id             String           @id @default(cuid())
-  organizationId String
-  memberId       String
-  eventName      String
-  attendedAt     DateTime
-  method         AttendanceMethod @default(MANUAL)
-  notes          String?
-  createdAt      DateTime         @default(now())
+  id                 String                @id @default(cuid())
+  organizationId     String
+  sessionId          String?
+  memberId           String
+  householdId        String?
+  eventName          String
+  attendedAt         DateTime
+  checkedInByUserId  String?
+  method             AttendanceMethod      @default(MANUAL)
+  attendanceStatus   AttendanceCheckStatus @default(PRESENT)
+  notes              String?
+  createdAt          DateTime              @default(now())
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member       Member             @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  session      AttendanceSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  household    Household?         @relation(fields: [householdId], references: [id], onDelete: SetNull)
 
+  @@unique([sessionId, memberId])
   @@index([organizationId, memberId, attendedAt])
+  @@index([organizationId, sessionId])
+  @@index([householdId])
   @@map("attendance_records")
+}
+
+/// First-time / returning visitor — foundation for Visitor Journey.
+model Visitor {
+  id                 String   @id @default(cuid())
+  organizationId     String
+  firstName          String
+  lastName           String
+  phone              String?
+  email              String?
+  invitedByMemberId  String?
+  householdId        String?
+  familyName         String?
+  childrenCount      Int      @default(0)
+  prayerRequest      String?
+  notes              String?
+  convertedMemberId  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  attendances  VisitorAttendance[]
+
+  @@index([organizationId])
+  @@index([organizationId, email])
+  @@index([organizationId, phone])
+  @@map("visitors")
+}
+
+model VisitorAttendance {
+  id                  String   @id @default(cuid())
+  organizationId      String
+  visitorId           String
+  sessionId           String
+  invitedByMemberId   String?
+  isFirstVisit        Boolean  @default(true)
+  isSecondVisit       Boolean  @default(false)
+  convertedToMember   Boolean  @default(false)
+  checkedInAt         DateTime @default(now())
+  notes               String?
+  createdAt           DateTime @default(now())
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  visitor      Visitor          @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  session      AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, visitorId])
+  @@index([organizationId, sessionId])
+  @@index([visitorId])
+  @@map("visitor_attendances")
 }
 
 model GivingRecord {

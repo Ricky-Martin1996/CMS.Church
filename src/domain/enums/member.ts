@@ -116,7 +116,69 @@ export enum AttendanceMethod {
   MANUAL = "MANUAL",
   QR = "QR",
   IMPORT = "IMPORT",
+  SEARCH = "SEARCH",
+  HOUSEHOLD = "HOUSEHOLD",
+  VISITOR = "VISITOR",
+  VOLUNTEER = "VOLUNTEER",
 }
+
+export enum AttendanceSessionType {
+  SUNDAY = "SUNDAY",
+  YOUTH = "YOUTH",
+  PRAYER = "PRAYER",
+  CELL_GROUP = "CELL_GROUP",
+  EVENT = "EVENT",
+  VOLUNTEER = "VOLUNTEER",
+  OTHER = "OTHER",
+}
+
+export enum AttendanceSessionStatus {
+  SCHEDULED = "SCHEDULED",
+  LIVE = "LIVE",
+  CLOSED = "CLOSED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum AttendanceCheckStatus {
+  PRESENT = "PRESENT",
+  ABSENT = "ABSENT",
+  LATE = "LATE",
+  EXCUSED = "EXCUSED",
+}
+
+export const ATTENDANCE_METHOD_LABELS: Record<AttendanceMethod, string> = {
+  [AttendanceMethod.MANUAL]: "Manual",
+  [AttendanceMethod.QR]: "QR Code",
+  [AttendanceMethod.IMPORT]: "Import",
+  [AttendanceMethod.SEARCH]: "Search",
+  [AttendanceMethod.HOUSEHOLD]: "Household",
+  [AttendanceMethod.VISITOR]: "Visitor",
+  [AttendanceMethod.VOLUNTEER]: "Volunteer",
+};
+
+export const ATTENDANCE_SESSION_TYPE_LABELS: Record<AttendanceSessionType, string> = {
+  [AttendanceSessionType.SUNDAY]: "Sunday Service",
+  [AttendanceSessionType.YOUTH]: "Youth",
+  [AttendanceSessionType.PRAYER]: "Prayer",
+  [AttendanceSessionType.CELL_GROUP]: "Cell Group",
+  [AttendanceSessionType.EVENT]: "Event",
+  [AttendanceSessionType.VOLUNTEER]: "Volunteer",
+  [AttendanceSessionType.OTHER]: "Other",
+};
+
+export const ATTENDANCE_SESSION_STATUS_LABELS: Record<AttendanceSessionStatus, string> = {
+  [AttendanceSessionStatus.SCHEDULED]: "Scheduled",
+  [AttendanceSessionStatus.LIVE]: "Live",
+  [AttendanceSessionStatus.CLOSED]: "Closed",
+  [AttendanceSessionStatus.CANCELLED]: "Cancelled",
+};
+
+export const ATTENDANCE_CHECK_STATUS_LABELS: Record<AttendanceCheckStatus, string> = {
+  [AttendanceCheckStatus.PRESENT]: "Present",
+  [AttendanceCheckStatus.ABSENT]: "Absent",
+  [AttendanceCheckStatus.LATE]: "Late",
+  [AttendanceCheckStatus.EXCUSED]: "Excused",
+};
 
 export enum PrayerStatus {
   OPEN = "OPEN",

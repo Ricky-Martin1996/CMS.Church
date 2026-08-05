@@ -34,3 +34,7 @@ export function forbidden(message = "Insufficient permissions") {
 export function notFound(message = "Resource not found") {
   return new AppError(message, "NOT_FOUND", 404);
 }
+
+export function conflict(message = "Resource already exists") {
+  return new AppError(message, "CONFLICT", 409);
+}

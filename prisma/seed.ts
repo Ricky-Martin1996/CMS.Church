@@ -9,7 +9,7 @@ import {
   Role,
 } from "@prisma/client";
 import { DEFAULT_TAGS } from "../src/domain/enums/member";
-import { subDays, subMonths } from "date-fns";
+import { subDays, subMonths, startOfDay } from "date-fns";
 
 const prisma = new PrismaClient();
 
@@ -827,6 +827,207 @@ async function main() {
   console.log(
     `   Households: ${chenHh.familyName}, ${williamsHh.familyName}, ${patelHh.familyName}, …`
   );
+
+  // ---------------------------------------------------------------------------
+  // Attendance sessions & check-in (Grace Community)
+  // ---------------------------------------------------------------------------
+  const today = startOfDay(new Date());
+  const sundayServiceName = "Sunday Morning Worship";
+
+  async function ensureAttendanceSession(input: {
+    serviceName: string;
+    date: Date;
+    status: "SCHEDULED" | "LIVE" | "CLOSED" | "CANCELLED";
+    expectedCount?: number;
+    startTime?: Date;
+    endTime?: Date;
+  }) {
+    const existing = await prisma.attendanceSession.findFirst({
+      where: {
+        organizationId: grace.id,
+        serviceName: input.serviceName,
+        date: input.date,
+      },
+    });
+    if (existing) return existing;
+    return prisma.attendanceSession.create({
+      data: {
+        organizationId: grace.id,
+        serviceName: input.serviceName,
+        campus: "Main Campus",
+        ministry: "Worship",
+        date: input.date,
+        startTime: input.startTime ?? null,
+        endTime: input.endTime ?? null,
+        attendanceType: "SUNDAY",
+        status: input.status,
+        expectedCount: input.expectedCount ?? 180,
+        notes:
+          input.status === "LIVE"
+            ? "Live check-in session for demo kiosk."
+            : null,
+      },
+    });
+  }
+
+  const liveSession = await ensureAttendanceSession({
+    serviceName: sundayServiceName,
+    date: today,
+    status: "LIVE",
+    expectedCount: 185,
+    startTime: new Date(today.getTime() + 9 * 60 * 60 * 1000),
+  });
+
+  const closedSundays = [7, 14, 21, 28].map((daysAgo) =>
+    subDays(today, daysAgo)
+  );
+  const closedSessions = [];
+  for (const date of closedSundays) {
+    closedSessions.push(
+      await ensureAttendanceSession({
+        serviceName: sundayServiceName,
+        date,
+        status: "CLOSED",
+        expectedCount: 175,
+        startTime: new Date(date.getTime() + 9 * 60 * 60 * 1000),
+        endTime: new Date(date.getTime() + 11 * 60 * 60 * 1000),
+      })
+    );
+  }
+
+  const sessionCheckInCount = await prisma.attendanceRecord.count({
+    where: { sessionId: liveSession.id },
+  });
+
+  if (sessionCheckInCount === 0) {
+    const checkInMembers = [
+      sarah,
+      marcus,
+      aisha,
+      elena,
+      priya,
+      noah,
+      davidChen,
+      miaChen,
+      graceWilliams,
+    ];
+
+    await prisma.attendanceRecord.createMany({
+      data: checkInMembers.map((member, index) => ({
+        organizationId: grace.id,
+        sessionId: liveSession.id,
+        memberId: member.id,
+        householdId:
+          member.id === sarah.id || member.id === davidChen.id || member.id === miaChen.id
+            ? chenHh.id
+            : member.id === marcus.id || member.id === graceWilliams.id
+              ? williamsHh.id
+              : member.id === aisha.id
+                ? patelHh.id
+                : member.id === elena.id
+                  ? rossiHh.id
+                  : member.id === priya.id
+                    ? nairHh.id
+                    : member.id === noah.id
+                      ? bennettHh.id
+                      : null,
+        eventName: liveSession.serviceName,
+        attendedAt: new Date(Date.now() - index * 90_000),
+        checkedInByUserId: pastor.id,
+        method:
+          index % 4 === 0
+            ? AttendanceMethod.QR
+            : index % 3 === 0
+              ? AttendanceMethod.SEARCH
+              : AttendanceMethod.MANUAL,
+        attendanceStatus: "PRESENT",
+      })),
+      skipDuplicates: true,
+    });
+
+    for (const session of closedSessions.slice(0, 2)) {
+      await prisma.attendanceRecord.createMany({
+        data: [sarah, marcus, elena, priya, noah].map((member, index) => ({
+          organizationId: grace.id,
+          sessionId: session.id,
+          memberId: member.id,
+          eventName: session.serviceName,
+          attendedAt: new Date(session.date.getTime() + (10 + index) * 60 * 60 * 1000),
+          method: AttendanceMethod.MANUAL,
+          attendanceStatus: "PRESENT",
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  const visitorSeedCount = await prisma.visitor.count({
+    where: { organizationId: grace.id },
+  });
+
+  if (visitorSeedCount === 0) {
+    const visitorJordan = await prisma.visitor.create({
+      data: {
+        organizationId: grace.id,
+        firstName: "Jordan",
+        lastName: "Reed",
+        email: "jordan.reed@email.com",
+        phone: "+1-555-0201",
+        invitedByMemberId: aisha.id,
+        prayerRequest: "Looking for a church home in Springfield.",
+      },
+    });
+
+    const visitorTaylor = await prisma.visitor.create({
+      data: {
+        organizationId: grace.id,
+        firstName: "Taylor",
+        lastName: "Brooks",
+        email: "taylor.b@email.com",
+        phone: "+1-555-0202",
+        invitedByMemberId: marcus.id,
+        familyName: "Brooks Family",
+        childrenCount: 2,
+      },
+    });
+
+    await prisma.visitorAttendance.create({
+      data: {
+        organizationId: grace.id,
+        visitorId: visitorJordan.id,
+        sessionId: liveSession.id,
+        invitedByMemberId: aisha.id,
+        isFirstVisit: true,
+        isSecondVisit: false,
+        checkedInAt: subDays(new Date(), 0),
+      },
+    });
+
+    const priorSunday = closedSessions[0]!;
+    await prisma.visitorAttendance.create({
+      data: {
+        organizationId: grace.id,
+        visitorId: visitorTaylor.id,
+        sessionId: priorSunday.id,
+        invitedByMemberId: marcus.id,
+        isFirstVisit: true,
+        isSecondVisit: false,
+        checkedInAt: priorSunday.date,
+      },
+    });
+
+    await prisma.visitorAttendance.create({
+      data: {
+        organizationId: grace.id,
+        visitorId: visitorTaylor.id,
+        sessionId: liveSession.id,
+        invitedByMemberId: marcus.id,
+        isFirstVisit: false,
+        isSecondVisit: true,
+        checkedInAt: new Date(),
+      },
+    });
+  }
 }
 
 main()
