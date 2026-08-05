@@ -85,9 +85,21 @@ Open [http://localhost:3000](http://localhost:3000).
 - Analytics: attendance, registration, no-show, volunteer coverage, capacity
 - RBAC: `event:read|write|publish|manage|checkin`
 
+## Enterprise Communication Hub
+
+- `/communications` · `/communications/templates` · `/communications/campaigns`
+  · `/communications/automations` · `/communications/[id]`
+- Unified inbox/outbox · drafts · scheduled · sent · failed · archived
+- Audiences across members, visitors, households, ministries, events
+- Automations + templates with merge variables
+- Provider adapters: Resend · Twilio · WhatsApp Business · Firebase · Internal
+- Timeline fan-out to member / household / visitor history
+- Analytics: delivery, open, click, failure rates
+- RBAC: `communication:read|write|send|templates`
+
 ## Product UI
 
 - Glassmorphism UI with aurora animated backgrounds
 - Dark & light themes + accent switching
 - Command palette (`⌘K` / `Ctrl+K`)
-- Modules: Dashboard, People, Events, Giving, Groups, Settings
+- Modules: Dashboard, People, Events, Communications, Giving, Groups, Settings
