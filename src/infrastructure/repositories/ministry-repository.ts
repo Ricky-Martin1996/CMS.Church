@@ -1311,7 +1311,7 @@ export const ministryRepository: MinistryRepository = {
     if (!fromAssignment) throw notFound("Assignment not found");
 
     let toAssignmentId: string | null = null;
-    let toVolunteerId: string | null = input.toVolunteerId ?? null;
+    const toVolunteerId: string | null = input.toVolunteerId ?? null;
 
     if (input.toVolunteerId) {
       const toAssignment = await prisma.scheduleAssignment.findFirst({
@@ -1484,7 +1484,6 @@ export const ministryRepository: MinistryRepository = {
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
-    const prevMonthStart = startOfMonth(subMonths(now, 1));
     const prevMonthEnd = endOfMonth(subMonths(now, 1));
 
     const [

@@ -67,6 +67,14 @@ Open [http://localhost:3000](http://localhost:3000).
 - Automation-ready (`automationKey`, provider metadata hooks)
 - RBAC: `visitor:read|write|assign|communicate|convert`
 
+## Ministry & Volunteer Management
+
+- `/ministries` · `/volunteers` · `/schedule` (drag-and-drop staffing board)
+- Default + custom ministries; volunteer profiles with skills, certs, availability
+- Assign / confirm / decline · conflict detection · check-in · messaging
+- Analytics: coverage, hours, reliability, ministry growth
+- RBAC: `ministry:read|write`, `volunteer:read|write`, `schedule:manage`
+
 ## Product UI
 
 - Glassmorphism UI with aurora animated backgrounds

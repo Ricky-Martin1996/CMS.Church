@@ -10,6 +10,7 @@ src/
     households/           # Family & Household Management
     attendance/           # Attendance & Check-in
     visitors/             # Visitor Journey & Follow-up
+    ministries/           # Ministry & Volunteer Management
   infrastructure/         # Prisma, repositories
   server/                 # Next.js server helpers (auth, rbac, tenant scope)
   app/                    # Presentation (App Router)
@@ -43,6 +44,9 @@ Attendance permissions: `attendance:read|write|manage|export|sessions`.
 
 Visitor permissions: `visitor:read|write|assign|communicate|convert`.
 
+Ministry permissions: `ministry:read|write`, `volunteer:read|write`,
+`schedule:manage` (plus legacy `volunteers:read|write`).
+
 ## Auth flow
 
 1. Clerk authenticates the user (session JWT).
@@ -57,56 +61,46 @@ Congregant records live in `Member` (not platform `Membership`).
 
 - List: `/people` — search, filters, table/grid/card/compact, infinite scroll, bulk, CSV
 - Profile: `/people/[id]` — hero, timeline, family, docs, notes, analytics, AI insights
-- QR check-in: `/people/check-in` (legacy) → links to full Attendance desk
 - Server actions: `src/application/people/actions.ts`
 
-Every mutating CRM action writes a `MemberActivity` timeline event.
+Legacy CRM `VolunteerAssignment` (roleName/team on a member) remains for People profiles
+and is separate from the Ministry platform `VolunteerProfile`.
 
 ## Family & Households
 
-The **Household** is the pastoral-care unit. Members connect via
-`HouseholdMembership` (table `family_members`) with relationships:
-Head, Husband, Wife, Son, Daughter, Parent, Grandparent, Guardian, Relative, Other
-(plus legacy Spouse / Child / Sibling for CRM compatibility).
-
-- List: `/households` — search, filters, table/grid, infinite scroll, bulk, CSV
-- Profile: `/households/[id]` — hero, family tree, members, timeline, analytics
-- Operations: add/move members, assign relations, change head, merge, split
+- `/households` — pastoral household management, family tree, merge/split
 - Server actions: `src/application/households/actions.ts`
-
-A member belongs to at most one household (`memberId` unique on membership).
 
 ## Attendance & Check-in
 
-Service-day attendance platform with live sessions.
-
-- Dashboard: `/attendance` — live counts, visitors, trends, ministry comparison
-- Check-in desk: `/attendance/check-in` — QR, member search, household, manual, visitor
-- Sessions: `/attendance/sessions` — create, start (LIVE), close, export CSV
-- Models: `AttendanceSession`, `AttendanceRecord`, `Visitor`, `VisitorAttendance`
-- Methods: QR · Search · Household · Manual · Visitor · Volunteer
-- New visitor check-in bootstraps a Visitor Journey automatically
+- `/attendance` · `/attendance/check-in` · `/attendance/sessions`
 - Server actions: `src/application/attendance/actions.ts`
 
 ## Visitor Journey & Follow-up
 
-Structured pipeline from first visit to membership.
-
-Pipeline stages (org-configurable via `VisitorStageConfig`):
-
-First Visit → Welcome Sent → Assigned Leader → Contacted → Second Visit →
-Cell Group Invited → Foundation Course → Membership Interview → Member
-
-- Dashboard: `/visitors` — KPIs, funnel, recent communications
-- Kanban: `/visitors/pipeline` — stage board with advance/move
-- Profile: `/visitors/[id]` — timeline, tasks, communications, convert
-- Tasks: `/visitors/tasks` — open/overdue follow-ups
-- Models: `VisitorJourney`, `FollowUpTask`, `CommunicationLog`,
-  `VisitorStatusHistory`, `VisitorActivity`, `VisitorStageConfig`
-- Auto tasks on stage entry (`automationKey` for idempotent automation)
-- Communication logs carry `metadata` for future WhatsApp/email providers
-- Convert creates a CRM `Member` and completes the journey
+- `/visitors` · `/visitors/pipeline` · `/visitors/[id]` · `/visitors/tasks`
 - Server actions: `src/application/visitors/actions.ts`
+
+## Ministry & Volunteer Management
+
+Operational staffing for church ministries.
+
+Default ministries: Worship · Media · Hospitality · Kids · Youth · Prayer ·
+Parking · Security · Administration (custom ministries supported).
+
+- Dashboard: `/ministries` — list, ensure defaults, coverage analytics
+- Detail: `/ministries/[id]` — roles, volunteers, upcoming events
+- Roster: `/volunteers` · `/volunteers/[id]` — skills, certs, availability,
+  preferred ministries, training, messaging, check-in
+- Scheduler: `/schedule` — week calendar + drag-and-drop board
+  (assign, confirm/decline, conflict detection, create events/slots)
+- Models: `Ministry`, `MinistryRole`, `VolunteerProfile`, skills/certs/availability,
+  `ScheduleEvent`, `ScheduleSlot`, `ScheduleAssignment`, `ScheduleSwapRequest`,
+  `VolunteerCheckIn`, `VolunteerMessage`, `VolunteerActivity`
+- Analytics: coverage, hours, reliability, check-in rate, ministry growth
+- Server actions: `src/application/ministries/actions.ts`
+
+`/groups` remains the life-groups mock module (separate from ministries).
 
 ## Setup
 

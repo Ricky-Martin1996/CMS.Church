@@ -19,7 +19,6 @@ import type {
 import type {
   MinistryStatus,
   ScheduleAssignmentStatus,
-  SwapRequestStatus,
   VolunteerCheckInStatus,
   VolunteerMessageChannel,
 } from "@/domain/enums/ministry";

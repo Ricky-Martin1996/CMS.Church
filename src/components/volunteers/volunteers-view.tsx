@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Search, Users } from "lucide-react";
+import { Search } from "lucide-react";
 import { listVolunteersAction } from "@/application/ministries/actions";
 import { FadeIn } from "@/components/motion/page-transition";
 import { ErrorState, LoadingState } from "@/components/shared/states";

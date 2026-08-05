@@ -19,7 +19,6 @@ import {
   upsertVolunteerProfile,
 } from "@/application/ministries/ministry-service";
 import {
-  MinistryStatus,
   ScheduleAssignmentStatus,
   ScheduleEventType,
   TrainingStatus,

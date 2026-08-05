@@ -13,7 +13,6 @@ import { listScheduleEventsAction } from "@/application/ministries/actions";
 import { FadeIn } from "@/components/motion/page-transition";
 import { SchedulerBoard } from "@/components/schedule/scheduler-board";
 import {
-  formatScheduleDate,
   formatScheduleDateTime,
   getWeekDays,
   getWeekRange,
