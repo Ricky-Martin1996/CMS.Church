@@ -1,15 +1,22 @@
+"use client";
+
 import * as React from "react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { glass?: boolean }
->(({ className, glass = true, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & {
+    glass?: boolean;
+    elevate?: boolean;
+  }
+>(({ className, glass = true, elevate = true, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-3xl text-card-foreground transition-shadow duration-300",
+      "rounded-[1.75rem] text-card-foreground",
       glass ? "glass" : "bg-card border border-border shadow-[var(--shadow-soft)]",
+      elevate && "hover-lift",
       className
     )}
     {...props}
@@ -72,5 +79,32 @@ const CardFooter = React.forwardRef<
   />
 ));
 CardFooter.displayName = "CardFooter";
+
+export function MotionCard({
+  children,
+  className,
+  delay = 0,
+  elevate = true,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  elevate?: boolean;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={cn(
+        "glass rounded-[1.75rem] text-card-foreground",
+        elevate && "hover-lift",
+        className
+      )}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };

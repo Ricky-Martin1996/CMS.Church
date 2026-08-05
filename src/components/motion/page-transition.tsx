@@ -8,9 +8,9 @@ export function PageTransition({ children }: { children: ReactNode }) {
 
   return (
     <motion.div
-      initial={reduce ? false : { opacity: 0, y: 10 }}
+      initial={reduce ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="min-h-full"
     >
       {children}
@@ -31,10 +31,10 @@ export function FadeIn({
 
   return (
     <motion.div
-      initial={reduce ? false : { opacity: 0, y: 12 }}
+      initial={reduce ? false : { opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.4,
+        duration: 0.45,
         delay,
         ease: [0.22, 1, 0.36, 1],
       }}
@@ -62,7 +62,7 @@ export function StaggerChildren({
         hidden: {},
         show: {
           transition: {
-            staggerChildren: reduce ? 0 : 0.06,
+            staggerChildren: reduce ? 0 : 0.07,
           },
         },
       }}
@@ -74,10 +74,10 @@ export function StaggerChildren({
 }
 
 export const staggerItem = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 12 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
   },
 };

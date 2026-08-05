@@ -8,22 +8,23 @@ export function AuroraBackground() {
     >
       <div className="absolute inset-0 bg-background" />
       <div
-        className="aurora-blob left-[-10%] top-[-10%] h-[55vh] w-[55vw]"
+        className="aurora-blob left-[-12%] top-[-14%] h-[58vh] w-[58vw]"
         style={{ background: "hsl(var(--aurora-1))" }}
       />
       <div
-        className="aurora-blob right-[-15%] top-[10%] h-[50vh] w-[45vw]"
+        className="aurora-blob right-[-18%] top-[5%] h-[52vh] w-[48vw]"
         style={{ background: "hsl(var(--aurora-2))" }}
       />
       <div
-        className="aurora-blob bottom-[-20%] left-[20%] h-[45vh] w-[50vw]"
+        className="aurora-blob bottom-[-22%] left-[15%] h-[48vh] w-[52vw]"
         style={{ background: "hsl(var(--aurora-3))" }}
       />
       <div
-        className="aurora-blob bottom-[10%] right-[10%] h-[35vh] w-[35vw]"
+        className="aurora-blob bottom-[8%] right-[5%] h-[38vh] w-[38vw]"
         style={{ background: "hsl(var(--aurora-4))" }}
       />
-      <div className="absolute inset-0 bg-background/40 dark:bg-background/55" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,transparent_0%,hsl(var(--background)/0.55)_70%)]" />
+      <div className="absolute inset-0 bg-background/25 dark:bg-background/45" />
     </div>
   );
 }

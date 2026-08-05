@@ -41,6 +41,43 @@ export type ActivityItem = {
   type: "person" | "giving" | "event" | "message";
 };
 
+export type Birthday = {
+  id: string;
+  name: string;
+  date: string;
+  age: number;
+};
+
+export type PrayerRequest = {
+  id: string;
+  from: string;
+  request: string;
+  status: "open" | "praying" | "answered";
+  time: string;
+};
+
+export type Insight = {
+  id: string;
+  title: string;
+  body: string;
+  tone: "positive" | "neutral" | "attention";
+};
+
+export type NotificationItem = {
+  id: string;
+  title: string;
+  body: string;
+  time: string;
+  unread: boolean;
+  type: "system" | "people" | "giving" | "event";
+};
+
+export type MemberGrowthPoint = {
+  month: string;
+  members: number;
+  visitors: number;
+};
+
 export const people: Person[] = [
   {
     id: "1",
@@ -177,6 +214,15 @@ export const attendanceData: AttendancePoint[] = [
   { week: "W6", inPerson: 872, online: 258 },
 ];
 
+export const memberGrowth: MemberGrowthPoint[] = [
+  { month: "Feb", members: 2680, visitors: 42 },
+  { month: "Mar", members: 2710, visitors: 51 },
+  { month: "Apr", members: 2734, visitors: 38 },
+  { month: "May", members: 2768, visitors: 64 },
+  { month: "Jun", members: 2801, visitors: 55 },
+  { month: "Jul", members: 2847, visitors: 71 },
+];
+
 export const activities: ActivityItem[] = [
   {
     id: "1",
@@ -212,6 +258,92 @@ export const activities: ActivityItem[] = [
     description: "4 new registrations this week",
     time: "Yesterday",
     type: "person",
+  },
+];
+
+export const birthdays: Birthday[] = [
+  { id: "1", name: "Sarah Chen", date: "Aug 6", age: 34 },
+  { id: "2", name: "David Kim", date: "Aug 8", age: 29 },
+  { id: "3", name: "Elena Rodriguez", date: "Aug 11", age: 41 },
+];
+
+export const prayerRequests: PrayerRequest[] = [
+  {
+    id: "1",
+    from: "Anonymous",
+    request: "Healing for a family member recovering from surgery.",
+    status: "praying",
+    time: "2h ago",
+  },
+  {
+    id: "2",
+    from: "Marcus W.",
+    request: "Guidance for a career transition this month.",
+    status: "open",
+    time: "5h ago",
+  },
+  {
+    id: "3",
+    from: "Youth Team",
+    request: "Protection and wisdom for upcoming mission trip.",
+    status: "answered",
+    time: "1d ago",
+  },
+];
+
+export const insights: Insight[] = [
+  {
+    id: "1",
+    title: "Attendance momentum",
+    body: "In-person attendance is up 6.2% — consider opening a second kids classroom this Sunday.",
+    tone: "positive",
+  },
+  {
+    id: "2",
+    title: "Visitor follow-up gap",
+    body: "7 first-time guests from last Sunday still await a welcome message within 48 hours.",
+    tone: "attention",
+  },
+  {
+    id: "3",
+    title: "Giving rhythm",
+    body: "Recurring gifts now cover 61% of monthly operating needs — steadier than last quarter.",
+    tone: "neutral",
+  },
+];
+
+export const notifications: NotificationItem[] = [
+  {
+    id: "1",
+    title: "Young Adults Night almost full",
+    body: "96 of 120 spots claimed. Consider waitlist.",
+    time: "14m",
+    unread: true,
+    type: "event",
+  },
+  {
+    id: "2",
+    title: "New recurring gift",
+    body: "Chen family set up $250 / month.",
+    time: "38m",
+    unread: true,
+    type: "giving",
+  },
+  {
+    id: "3",
+    title: "Visitor follow-up due",
+    body: "James Okonkwo — send welcome within 24h.",
+    time: "1h",
+    unread: true,
+    type: "people",
+  },
+  {
+    id: "4",
+    title: "Weekly digest ready",
+    body: "Sunday summary is ready to review.",
+    time: "Yesterday",
+    unread: false,
+    type: "system",
   },
 ];
 
@@ -257,4 +389,11 @@ export const navItems = [
   { href: "/giving", label: "Giving", icon: "HeartHandshake" },
   { href: "/groups", label: "Groups", icon: "UsersRound" },
   { href: "/settings", label: "Settings", icon: "Settings" },
+] as const;
+
+export const quickActions = [
+  { id: "1", label: "Add person", href: "/people", icon: "UserPlus" },
+  { id: "2", label: "Create event", href: "/events", icon: "CalendarPlus" },
+  { id: "3", label: "Record gift", href: "/giving", icon: "HandCoins" },
+  { id: "4", label: "New group", href: "/groups", icon: "UsersRound" },
 ] as const;
