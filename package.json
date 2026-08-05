@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build",
+    "build": "tsx scripts/prebuild-db.ts && prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -13,6 +13,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:verify": "tsx scripts/verify-db-schema.ts",
+    "db:setup:prod": "tsx scripts/prod-db-setup.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },

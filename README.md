@@ -28,13 +28,27 @@ Open [http://localhost:3000](http://localhost:3000).
 | Command | Description |
 | --- | --- |
 | `npm run dev` | Start development server |
-| `npm run build` | Generate Prisma client + production build |
+| `npm run build` | On Vercel: migrate + seed-if-empty, then generate + build |
 | `npm start` | Serve production build |
 | `npm run lint` | Run ESLint |
 | `npm run typecheck` | TypeScript check |
 | `npm run db:migrate` | Create/apply Prisma migrations |
+| `npm run db:migrate:deploy` | Apply pending migrations (production) |
 | `npm run db:seed` | Seed demo organizations & roles |
+| `npm run db:verify` | Assert all Prisma tables exist |
+| `npm run db:setup:prod` | Migrate + verify + seed (requires Neon `DATABASE_URL`) |
 | `npm run db:studio` | Open Prisma Studio |
+
+### Production database (Neon)
+
+Vercel production builds run `prisma migrate deploy` and seed when the DB has no organizations. You can also run setup locally against Neon:
+
+```bash
+export DATABASE_URL="postgresql://…@….neon.tech/neondb?sslmode=require"
+npm run db:setup:prod
+```
+
+Or trigger the **Production DB setup** GitHub Action after adding repository secret `DATABASE_URL`.
 
 ## SaaS foundation
 
