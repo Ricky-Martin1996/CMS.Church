@@ -7,6 +7,7 @@ src/
   domain/                 # Pure business rules (roles, permissions, entities)
   application/            # Use-cases / services (ports + orchestration)
     people/               # Members CRM services + server actions
+    households/           # Family & Household Management
   infrastructure/         # Prisma, repositories
   server/                 # Next.js server helpers (auth, rbac, tenant scope)
   app/                    # Presentation (App Router)
@@ -31,8 +32,10 @@ Finance Manager · Member · Guest
 
 Permissions live in `src/domain/permissions/rbac.ts`.
 
-CRM-specific permissions: `people:read|write|export|import`, note visibility
-(`people:notes:private|pastoral|leader`), `people:documents`, `people:giving:view`.
+CRM permissions: `people:read|write|export|import`, note visibility,
+`people:documents`, `people:giving:view`.
+
+Household permissions: `households:read|write|delete|merge|export|import`.
 
 ## Auth flow
 
@@ -50,9 +53,24 @@ Congregant records live in `Member` (not platform `Membership`).
 - Profile: `/people/[id]` — hero, timeline, family, docs, notes, analytics, AI insights
 - QR check-in: `/people/check-in`
 - Server actions: `src/application/people/actions.ts`
-- Insights engine: `src/application/people/ai-insights.ts` (swappable for LLM later)
 
 Every mutating CRM action writes a `MemberActivity` timeline event.
+
+## Family & Households
+
+The **Household** is the pastoral-care unit. Members connect via
+`HouseholdMembership` (table `family_members`) with relationships:
+Head, Husband, Wife, Son, Daughter, Parent, Grandparent, Guardian, Relative, Other
+(plus legacy Spouse / Child / Sibling for CRM compatibility).
+
+- List: `/households` — search, filters, table/grid, infinite scroll, bulk, CSV
+- Profile: `/households/[id]` — hero, family tree, members, timeline, analytics
+- Operations: add/move members, assign relations, change head, merge, split
+- Quick actions: visit, email, WhatsApp, cell leader, home visit, prayer, QR
+- Server actions: `src/application/households/actions.ts`
+- Activities: `HouseholdActivity` on every mutation
+
+A member belongs to at most one household (`memberId` unique on membership).
 
 ## Setup
 

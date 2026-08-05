@@ -3,7 +3,6 @@ import type {
   HouseholdDocumentEntity,
   HouseholdEntity,
   HouseholdFilterDefinition,
-  HouseholdListColumn,
   HouseholdListItem,
   HouseholdMembershipEntity,
   HouseholdNoteEntity,
@@ -18,7 +17,6 @@ import type {
 import { prisma } from "@/infrastructure/db/prisma";
 import { memberDisplayName } from "@/infrastructure/repositories/member-mappers";
 import type {
-  DocumentType as PrismaDocumentType,
   FamilyRelation as PrismaFamilyRelation,
   HouseholdStatus as PrismaHouseholdStatus,
   NoteVisibility as PrismaNoteVisibility,

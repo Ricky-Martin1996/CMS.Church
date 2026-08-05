@@ -141,7 +141,7 @@ export function HouseholdProfileView({
 }) {
   const [profile] = useState(initial);
   const [tab, setTab] = useState<TabId>("overview");
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
   const refresh = () => {

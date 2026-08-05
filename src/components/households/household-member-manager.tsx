@@ -458,11 +458,10 @@ function MoveDialog({
 }
 
 function MergeDialog({
-  householdId,
   pending,
   onMerge,
 }: {
-  householdId: string;
+  householdId?: string;
   pending: boolean;
   onMerge: (targetId: string) => void;
 }) {

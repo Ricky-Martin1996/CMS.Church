@@ -45,6 +45,13 @@ Open [http://localhost:3000](http://localhost:3000).
 - Activity timeline on every action · AI insights · QR check-in · CSV import/export
 - Clean Architecture services + Prisma repositories + Server Actions
 
+## Family & Households
+
+- `/households` and `/households/[id]` — pastoral household management
+- Interactive family tree, merge/split, relation assignment, household QR
+- Engagement / attendance / giving analytics rolled up from members
+- RBAC: `households:read|write|delete|merge|export|import`
+
 ## Product UI
 
 - Glassmorphism UI with aurora animated backgrounds

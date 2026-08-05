@@ -349,44 +349,291 @@ async function main() {
 
   const sarah = createdMembers[0]!;
   const marcus = createdMembers[1]!;
+  const aisha = createdMembers[2]!;
+  const daniel = createdMembers[3]!;
   const elena = createdMembers[4]!;
+  const james = createdMembers[5]!;
+  const priya = createdMembers[6]!;
+  const noah = createdMembers[7]!;
 
   await prisma.member.update({
     where: { id: sarah.id },
     data: { assignedLeaderId: marcus.id },
   });
 
-  // Family household
-  let household = await prisma.household.findFirst({
-    where: { organizationId: grace.id, familyName: "Chen Household", deletedAt: null },
-  });
-  if (!household) {
-    household = await prisma.household.create({
+  // ---------------------------------------------------------------------------
+  // Multi-member households (Family Management seed)
+  // ---------------------------------------------------------------------------
+
+  async function ensureMember(input: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    status?: MemberStatus;
+    campus?: string;
+    phone?: string;
+  }) {
+    const existing = await prisma.member.findFirst({
+      where: { organizationId: grace.id, email: input.email, deletedAt: null },
+    });
+    if (existing) return existing;
+    return prisma.member.create({
       data: {
         organizationId: grace.id,
-        familyName: "Chen Household",
-        householdCode: "HH-CHENSEED1",
-        addressLine1: "100 Faith Avenue",
-        city: "Springfield",
-        state: "IL",
-        postalCode: "62701",
-        country: "US",
+        firstName: input.firstName,
+        lastName: input.lastName,
+        email: input.email,
+        phone: input.phone ?? null,
+        status: input.status ?? MemberStatus.ACTIVE,
+        lifecycle: MemberLifecycle.MEMBER,
+        campus: input.campus ?? "Main Campus",
+        joinedAt: subMonths(new Date(), 12),
       },
     });
   }
 
-  await prisma.householdMembership.upsert({
-    where: {
-      householdId_memberId: { householdId: household.id, memberId: sarah.id },
-    },
-    update: { relation: FamilyRelation.HEAD, isPrimary: true },
-    create: {
-      householdId: household.id,
-      memberId: sarah.id,
-      relation: FamilyRelation.HEAD,
-      isPrimary: true,
-    },
+  const davidChen = await ensureMember({
+    email: "david.chen@email.com",
+    firstName: "David",
+    lastName: "Chen",
+    phone: "+1-555-0111",
   });
+  const miaChen = await ensureMember({
+    email: "mia.chen@email.com",
+    firstName: "Mia",
+    lastName: "Chen",
+    status: MemberStatus.ACTIVE,
+    phone: "+1-555-0112",
+  });
+  const leoChen = await ensureMember({
+    email: "leo.chen@email.com",
+    firstName: "Leo",
+    lastName: "Chen",
+    status: MemberStatus.ACTIVE,
+  });
+  const graceWilliams = await ensureMember({
+    email: "grace.williams@email.com",
+    firstName: "Grace",
+    lastName: "Williams",
+    phone: "+1-555-0121",
+  });
+  const rajPatel = await ensureMember({
+    email: "raj.patel@email.com",
+    firstName: "Raj",
+    lastName: "Patel",
+    phone: "+1-555-0131",
+  });
+
+  async function ensureHousehold(input: {
+    familyName: string;
+    code: string;
+    addressLine1: string;
+    city?: string;
+    cellGroup?: string;
+    engagementScore?: number;
+    emergencyContact?: string;
+    emergencyPhone?: string;
+    anniversaryDate?: Date;
+  }) {
+    let hh = await prisma.household.findFirst({
+      where: {
+        organizationId: grace.id,
+        householdCode: input.code,
+        deletedAt: null,
+      },
+    });
+    if (!hh) {
+      hh = await prisma.household.create({
+        data: {
+          organizationId: grace.id,
+          familyName: input.familyName,
+          householdCode: input.code,
+          addressLine1: input.addressLine1,
+          city: input.city ?? "Springfield",
+          state: "IL",
+          postalCode: "62701",
+          country: "US",
+          preferredLanguage: "en",
+          cellGroup: input.cellGroup ?? null,
+          engagementScore: input.engagementScore ?? 70,
+          emergencyContact: input.emergencyContact ?? null,
+          emergencyPhone: input.emergencyPhone ?? null,
+          anniversaryDate: input.anniversaryDate ?? null,
+          status: "ACTIVE",
+          notes: `${input.familyName} — pastoral care household.`,
+        },
+      });
+    } else {
+      hh = await prisma.household.update({
+        where: { id: hh.id },
+        data: {
+          familyName: input.familyName,
+          cellGroup: input.cellGroup ?? hh.cellGroup,
+          engagementScore: input.engagementScore ?? hh.engagementScore,
+        },
+      });
+    }
+    return hh;
+  }
+
+  async function link(
+    householdId: string,
+    memberId: string,
+    relation: FamilyRelation,
+    isPrimary = false
+  ) {
+    // Enforce one household per member
+    await prisma.householdMembership.deleteMany({
+      where: { memberId, NOT: { householdId } },
+    });
+    await prisma.householdMembership.upsert({
+      where: { householdId_memberId: { householdId, memberId } },
+      update: { relation, isPrimary },
+      create: { householdId, memberId, relation, isPrimary },
+    });
+  }
+
+  const chenHh = await ensureHousehold({
+    familyName: "Chen Family",
+    code: "HH-CHEN001",
+    addressLine1: "100 Faith Avenue",
+    cellGroup: "East Cell · Alpha",
+    engagementScore: 86,
+    emergencyContact: "David Chen",
+    emergencyPhone: "+1-555-0111",
+    anniversaryDate: subMonths(new Date(), 120),
+  });
+
+  await link(chenHh.id, sarah.id, FamilyRelation.WIFE, false);
+  await link(chenHh.id, davidChen.id, FamilyRelation.HEAD, true);
+  await link(chenHh.id, miaChen.id, FamilyRelation.DAUGHTER);
+  await link(chenHh.id, leoChen.id, FamilyRelation.SON);
+
+  const williamsHh = await ensureHousehold({
+    familyName: "Williams Family",
+    code: "HH-WILL001",
+    addressLine1: "42 Covenant Road",
+    cellGroup: "Main Cell · Elders",
+    engagementScore: 92,
+    emergencyContact: "Grace Williams",
+    emergencyPhone: "+1-555-0121",
+    anniversaryDate: subMonths(new Date(), 200),
+  });
+  await link(williamsHh.id, marcus.id, FamilyRelation.HEAD, true);
+  await link(williamsHh.id, graceWilliams.id, FamilyRelation.WIFE);
+
+  const patelHh = await ensureHousehold({
+    familyName: "Patel Household",
+    code: "HH-PATE001",
+    addressLine1: "7 Mercy Lane",
+    cellGroup: "Newcomers Circle",
+    engagementScore: 61,
+    emergencyContact: "Raj Patel",
+    emergencyPhone: "+1-555-0131",
+  });
+  await link(patelHh.id, aisha.id, FamilyRelation.WIFE);
+  await link(patelHh.id, rajPatel.id, FamilyRelation.HEAD, true);
+
+  const rossiHh = await ensureHousehold({
+    familyName: "Rossi Household",
+    code: "HH-ROSS001",
+    addressLine1: "15 Hope Street",
+    cellGroup: "Children's Ministry Care",
+    engagementScore: 74,
+  });
+  await link(rossiHh.id, elena.id, FamilyRelation.HEAD, true);
+
+  const nairHh = await ensureHousehold({
+    familyName: "Nair Family",
+    code: "HH-NAIR001",
+    addressLine1: "88 Prayer Way",
+    city: "Springfield",
+    cellGroup: "East Cell · Prayer",
+    engagementScore: 81,
+  });
+  await link(nairHh.id, priya.id, FamilyRelation.HEAD, true);
+
+  const bennettHh = await ensureHousehold({
+    familyName: "Bennett Household",
+    code: "HH-BENN001",
+    addressLine1: "3 Youth Court",
+    cellGroup: "Youth Connect",
+    engagementScore: 55,
+  });
+  await link(bennettHh.id, noah.id, FamilyRelation.SON);
+  await link(bennettHh.id, daniel.id, FamilyRelation.GUARDIAN, true);
+
+  // Solo / inactive household
+  const kimHh = await ensureHousehold({
+    familyName: "Kim Household",
+    code: "HH-KIM0001",
+    addressLine1: "9 Quiet Grove",
+    engagementScore: 22,
+  });
+  await prisma.household.update({
+    where: { id: kimHh.id },
+    data: { status: "INACTIVE" },
+  });
+  await link(kimHh.id, james.id, FamilyRelation.HEAD, true);
+
+  // Household activities + note for Chen family
+  const hhActCount = await prisma.householdActivity.count({
+    where: { householdId: chenHh.id },
+  });
+  if (hhActCount === 0) {
+    await prisma.householdActivity.createMany({
+      data: [
+        {
+          organizationId: grace.id,
+          householdId: chenHh.id,
+          type: "CREATED",
+          title: "Household created",
+          actorUserId: pastor.id,
+          occurredAt: subMonths(new Date(), 40),
+        },
+        {
+          organizationId: grace.id,
+          householdId: chenHh.id,
+          type: "MEMBER_ADDED",
+          title: "Member added",
+          description: "Mia Chen joined as Daughter",
+          actorUserId: pastor.id,
+          occurredAt: subMonths(new Date(), 24),
+        },
+        {
+          organizationId: grace.id,
+          householdId: chenHh.id,
+          type: "HOME_VISIT_SCHEDULED",
+          title: "Home visit scheduled",
+          actorUserId: pastor.id,
+          occurredAt: subDays(new Date(), 10),
+        },
+        {
+          organizationId: grace.id,
+          householdId: chenHh.id,
+          type: "VISITED",
+          title: "Pastoral visit completed",
+          actorUserId: pastor.id,
+          occurredAt: subDays(new Date(), 3),
+        },
+      ],
+    });
+  }
+
+  const hhNoteCount = await prisma.householdNote.count({
+    where: { householdId: chenHh.id },
+  });
+  if (hhNoteCount === 0) {
+    await prisma.householdNote.create({
+      data: {
+        organizationId: grace.id,
+        householdId: chenHh.id,
+        authorUserId: pastor.id,
+        visibility: NoteVisibility.PASTORAL,
+        body: "Strong worship household. Kids engaged in youth. Follow up on small-group hosting interest.",
+      },
+    });
+  }
 
   // Activity / attendance / giving / prayer / volunteer for Sarah
   const activityCount = await prisma.memberActivity.count({
@@ -576,7 +823,10 @@ async function main() {
   console.log(
     `   Users: ${superAdmin.email}, ${pastor.email}, ${finance.email}, ${memberUser.email}`
   );
-  console.log(`   CRM members @ Grace: ${createdMembers.length}`);
+  console.log(`   CRM members @ Grace: ${createdMembers.length}+ family members`);
+  console.log(
+    `   Households: ${chenHh.familyName}, ${williamsHh.familyName}, ${patelHh.familyName}, …`
+  );
 }
 
 main()
