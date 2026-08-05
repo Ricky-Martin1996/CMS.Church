@@ -13,6 +13,7 @@ src/
     ministries/           # Ministry & Volunteer Management
     events/               # Enterprise Events & Church Calendar
     communications/       # Enterprise Communication Hub
+    intelligence/         # Executive Dashboard & Leadership Intelligence
   infrastructure/         # Prisma, repositories
   server/                 # Next.js server helpers (auth, rbac, tenant scope)
   app/                    # Presentation (App Router)
@@ -159,6 +160,27 @@ Channels: Email · WhatsApp · SMS · Push · Internal.
   `CommunicationMessage`, `CommunicationDelivery`, `CommunicationAutomation`,
   `CommunicationActivity`, `CommunicationProviderConfig`
 - Server actions: `src/application/communications/actions.ts`
+
+## Executive Dashboard & Leadership Intelligence
+
+Flagship `/dashboard` experience. Consumes existing module analytics — does not
+duplicate domain data.
+
+- Role-specific KPI strips for Pastor, Church Admin, Finance Manager,
+  Cell Leader, and Volunteer Leader (permission-scoped)
+- Modular **Church Health Score** (attendance, visitor conversion, volunteers,
+  prayer response, communication engagement, event readiness, membership growth,
+  household engagement) with overridable weights
+- Rule-based **Insight Engine** (`InsightProvider`) — LLM-swappable later,
+  no external AI APIs
+- AI Assistant panel: weekly summary, suggested actions, ministry highlights,
+  visitor recommendations, follow-up priorities (fed by rules)
+- Executive charts: attendance, growth/visitors, events/comms, household
+  engagement
+- Task center: follow-ups, volunteer gaps, birthdays, anniversaries, prayer,
+  event prep, failed messages
+- Server: `src/application/intelligence/*` · action
+  `getExecutiveDashboardAction`
 
 ## Setup
 

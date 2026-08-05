@@ -97,6 +97,17 @@ Open [http://localhost:3000](http://localhost:3000).
 - Analytics: delivery, open, click, failure rates
 - RBAC: `communication:read|write|send|templates`
 
+## Executive Dashboard & Leadership Intelligence
+
+- `/dashboard` — role-specific executive intelligence (Pastor, Admin, Finance,
+  Cell Leader, Volunteer Leader)
+- Church Health Score with modular factor weights
+- Rule-based insights + AI Assistant panel (no external LLM yet)
+- Charts across attendance, growth, visitors, households, volunteers, events,
+  communications
+- Task center aggregates follow-ups, gaps, birthdays, prayer, event prep
+- Consumes existing module services; respects RBAC
+
 ## Product UI
 
 - Glassmorphism UI with aurora animated backgrounds

@@ -246,3 +246,24 @@ export type {
   TemplateRenderContext,
 } from "@/domain/entities/communication";
 export type { TemplateVariable } from "@/domain/enums/communication";
+export {
+  InsightSeverity,
+  InsightCategory,
+  HealthFactorKey,
+  TaskCenterKind,
+  HEALTH_FACTOR_LABELS,
+  INSIGHT_SEVERITY_LABELS,
+} from "@/domain/enums/intelligence";
+export type {
+  HealthFactorScore,
+  ChurchHealthScore,
+  HealthScoreWeights,
+  OperationalInsight,
+  AiAssistantPanel,
+  ExecutiveKpi,
+  ChartSeriesPoint,
+  ExecutiveCharts,
+  TaskCenterItem,
+  ModuleSnapshot,
+  ExecutiveDashboard,
+} from "@/domain/entities/intelligence";
