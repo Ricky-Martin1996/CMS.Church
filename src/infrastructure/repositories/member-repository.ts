@@ -1,8 +1,6 @@
 import type {
-  CreateMemberInput,
   ListMembersQuery,
   MemberRepository,
-  UpdateMemberInput,
 } from "@/application/ports/member-repositories";
 import type { MemberAnalytics, MemberFilterDefinition, MemberProfile } from "@/domain/entities/member";
 import { prisma } from "@/infrastructure/db/prisma";

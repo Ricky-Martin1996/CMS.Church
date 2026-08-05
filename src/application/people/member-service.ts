@@ -67,7 +67,7 @@ export async function createMember(
     description: `${member.firstName} ${member.lastName} added to the directory`,
     actorUserId: input.actorUserId,
   });
-  await refreshMemberInsights(input.organizationId, member.id, input.actorUserId);
+  await refreshMemberInsights(input.organizationId, member.id);
   return member;
 }
 
@@ -128,7 +128,7 @@ export async function updateMember(input: {
     });
   }
 
-  await refreshMemberInsights(input.organizationId, member.id, input.actorUserId);
+  await refreshMemberInsights(input.organizationId, member.id);
   return member;
 }
 
@@ -325,7 +325,7 @@ export async function logQuickAction(input: {
     description: input.detail ?? null,
     actorUserId: input.actorUserId,
   });
-  await refreshMemberInsights(input.organizationId, input.memberId, input.actorUserId);
+  await refreshMemberInsights(input.organizationId, input.memberId);
 }
 
 export async function recordAttendance(input: {
@@ -354,8 +354,7 @@ export async function recordAttendance(input: {
   });
   await refreshMemberInsights(
     input.organizationId,
-    input.memberId,
-    input.actorUserId ?? undefined
+    input.memberId
   );
 }
 
@@ -391,7 +390,7 @@ export async function createPrayerRequest(input: {
     description: input.request.slice(0, 160),
     actorUserId: input.actorUserId,
   });
-  await refreshMemberInsights(input.organizationId, input.memberId, input.actorUserId);
+  await refreshMemberInsights(input.organizationId, input.memberId);
   return prayer;
 }
 
@@ -411,7 +410,7 @@ export async function addVolunteerRole(input: {
     description: input.roleName,
     actorUserId: input.actorUserId,
   });
-  await refreshMemberInsights(input.organizationId, input.memberId, input.actorUserId);
+  await refreshMemberInsights(input.organizationId, input.memberId);
   return role;
 }
 
@@ -468,8 +467,7 @@ export async function linkFamily(input: {
 
 export async function refreshMemberInsights(
   organizationId: string,
-  memberId: string,
-  _actorUserId?: string
+  memberId: string
 ) {
   const profile = await memberRepository.getProfile(
     organizationId,

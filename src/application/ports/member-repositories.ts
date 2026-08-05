@@ -16,7 +16,6 @@ import type {
   MemberLifecycle,
   MemberStatus,
   NoteVisibility,
-  PrayerStatus,
 } from "@/domain/enums/member";
 
 export type CreateMemberInput = {

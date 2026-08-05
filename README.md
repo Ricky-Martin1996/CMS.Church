@@ -38,6 +38,13 @@ Open [http://localhost:3000](http://localhost:3000).
 - **ORM:** Prisma
 - **Org switching:** httpOnly `churchos_org_id` cookie + sidebar switcher
 
+## Members CRM
+
+- Flagship People module at `/people` and `/people/[id]`
+- Org-scoped members, tags, family, notes, documents, attendance, giving, prayer, volunteers
+- Activity timeline on every action · AI insights · QR check-in · CSV import/export
+- Clean Architecture services + Prisma repositories + Server Actions
+
 ## Product UI
 
 - Glassmorphism UI with aurora animated backgrounds

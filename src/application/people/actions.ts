@@ -175,15 +175,26 @@ export async function updateMemberAction(memberId: string, raw: unknown) {
       tagIds: z.array(z.string()).optional(),
     });
     const data = schema.parse(raw);
+    const { baptismDate, dateOfBirth, email, ...rest } = data;
     const member = await updateMember({
       organizationId: ctx.organization.id,
       memberId,
       actorUserId: ctx.user.id,
       data: {
-        ...data,
-        email: data.email === "" ? null : data.email,
-        baptismDate: data.baptismDate ? new Date(data.baptismDate) : data.baptismDate,
-        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : data.dateOfBirth,
+        ...rest,
+        email: email === "" ? null : email,
+        baptismDate:
+          baptismDate === undefined
+            ? undefined
+            : baptismDate
+              ? new Date(baptismDate)
+              : null,
+        dateOfBirth:
+          dateOfBirth === undefined
+            ? undefined
+            : dateOfBirth
+              ? new Date(dateOfBirth)
+              : null,
       },
     });
     revalidatePath("/people");
@@ -494,8 +505,7 @@ export async function regenerateInsightsAction(memberId: string) {
     const ctx = await requirePermission(Permission.PEOPLE_READ);
     const insights = await refreshMemberInsights(
       ctx.organization.id,
-      memberId,
-      ctx.user.id
+      memberId
     );
     revalidatePath(`/people/${memberId}`);
     return { ok: true as const, data: insights };

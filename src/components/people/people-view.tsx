@@ -47,7 +47,6 @@ import type {
 } from "@/domain/entities/member";
 import { DEFAULT_MEMBER_COLUMNS } from "@/domain/entities/member";
 import { MemberStatus } from "@/domain/enums/member";
-import { cn } from "@/lib/utils";
 
 function useDebounce<T>(value: T, delay = 300): T {
   const [debounced, setDebounced] = useState(value);

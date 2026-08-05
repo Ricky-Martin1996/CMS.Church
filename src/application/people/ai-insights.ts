@@ -137,20 +137,3 @@ export function generateMemberInsights(input: InsightInput): AiInsights {
     generatedAt: new Date().toISOString(),
   };
 }
-
-export function computeScoresFromAnalytics(
-  analytics: MemberAnalytics,
-  insights: AiInsights
-): { engagementScore: number; growthScore: number; riskScore: number } {
-  return {
-    engagementScore: analytics.engagementScore || insights.riskScore === 0
-      ? analytics.engagementScore
-      : clamp(
-          analytics.attendanceCount90d * 12 +
-            (analytics.givingTotalCents90d > 0 ? 15 : 0) +
-            analytics.activeVolunteerRoles * 18
-        ),
-    growthScore: analytics.growthScore,
-    riskScore: insights.riskScore,
-  };
-}
