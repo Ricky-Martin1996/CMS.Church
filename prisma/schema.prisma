@@ -91,6 +91,20 @@ model Organization {
   communicationLogs CommunicationLog[]
   visitorStatusHistory VisitorStatusHistory[]
   visitorActivities VisitorActivity[]
+  ministries       Ministry[]
+  ministryRoles    MinistryRole[]
+  volunteerProfiles VolunteerProfile[]
+  scheduleEvents   ScheduleEvent[]
+  scheduleSlots    ScheduleSlot[]
+  scheduleAssignments ScheduleAssignment[]
+  scheduleSwapRequests ScheduleSwapRequest[]
+  volunteerCheckIns VolunteerCheckIn[]
+  volunteerMessages VolunteerMessage[]
+  volunteerActivities VolunteerActivity[]
+  volunteerSkills  VolunteerSkill[]
+  volunteerCertifications VolunteerCertification[]
+  volunteerAvailabilities VolunteerAvailability[]
+  volunteerMinistryPrefs VolunteerMinistryPreference[]
 
   @@index([slug])
   @@map("organizations")
@@ -336,6 +350,7 @@ model Member {
   giving        GivingRecord[]
   prayers       PrayerRequest[]
   volunteers    VolunteerAssignment[]
+  volunteerProfile VolunteerProfile?
 
   @@index([organizationId])
   @@index([organizationId, status])
@@ -986,4 +1001,377 @@ model MemberListPreference {
 
   @@unique([organizationId, userId])
   @@map("member_list_preferences")
+}
+
+// =============================================================================
+// Ministry & Volunteer Management
+// =============================================================================
+
+enum MinistryStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum TrainingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+enum ScheduleEventType {
+  SUNDAY_SERVICE
+  CONFERENCE
+  YOUTH_NIGHT
+  PRAYER_MEETING
+  SPECIAL_EVENT
+  OTHER
+}
+
+enum ScheduleAssignmentStatus {
+  ASSIGNED
+  CONFIRMED
+  DECLINED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum SwapRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+enum VolunteerCheckInStatus {
+  CHECKED_IN
+  LATE
+  ABSENT
+  EXCUSED
+}
+
+enum VolunteerMessageChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+  IN_APP
+}
+
+enum VolunteerActivityType {
+  CREATED
+  UPDATED
+  ASSIGNED
+  CONFIRMED
+  DECLINED
+  SWAP_REQUESTED
+  SWAP_ACCEPTED
+  CHECKED_IN
+  MESSAGE_SENT
+  TRAINING_UPDATED
+}
+
+enum Weekday {
+  SUN
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+}
+
+model Ministry {
+  id               String         @id @default(cuid())
+  organizationId   String
+  name             String
+  slug             String
+  description      String?
+  color            String         @default("#0d9488")
+  icon             String?
+  status           MinistryStatus @default(ACTIVE)
+  leaderMemberId   String?
+  sortOrder        Int            @default(0)
+  isDefault        Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  roles        MinistryRole[]
+  events       ScheduleEvent[]
+  preferences  VolunteerMinistryPreference[]
+  messages     VolunteerMessage[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status])
+  @@map("ministries")
+}
+
+model MinistryRole {
+  id             String   @id @default(cuid())
+  organizationId String
+  ministryId     String
+  name           String
+  description    String?
+  slotsNeeded    Int      @default(1)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ministry     Ministry     @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  slots        ScheduleSlot[]
+
+  @@index([organizationId, ministryId])
+  @@map("ministry_roles")
+}
+
+model VolunteerProfile {
+  id                  String         @id @default(cuid())
+  organizationId      String
+  memberId            String         @unique
+  experienceYears     Int?
+  trainingStatus      TrainingStatus @default(NOT_STARTED)
+  preferredService    String?
+  emergencyName       String?
+  emergencyPhone      String?
+  notes               String?
+  reliabilityScore    Int            @default(80)
+  totalHours          Float          @default(0)
+  isActive            Boolean        @default(true)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  organization    Organization                   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member          Member                         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  skills          VolunteerSkill[]
+  certifications  VolunteerCertification[]
+  availabilities  VolunteerAvailability[]
+  preferences     VolunteerMinistryPreference[]
+  assignments     ScheduleAssignment[]
+  checkIns        VolunteerCheckIn[]
+  activities      VolunteerActivity[]
+  messages        VolunteerMessage[]
+  swapRequestsFrom ScheduleSwapRequest[]         @relation("SwapFrom")
+  swapRequestsTo   ScheduleSwapRequest[]         @relation("SwapTo")
+
+  @@index([organizationId, isActive])
+  @@map("volunteer_profiles")
+}
+
+model VolunteerSkill {
+  id             String   @id @default(cuid())
+  organizationId String
+  volunteerId    String
+  name           String
+  level          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  volunteer    VolunteerProfile @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@index([volunteerId])
+  @@map("volunteer_skills")
+}
+
+model VolunteerCertification {
+  id             String    @id @default(cuid())
+  organizationId String
+  volunteerId    String
+  name           String
+  issuer         String?
+  issuedAt       DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  volunteer    VolunteerProfile @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@index([volunteerId])
+  @@map("volunteer_certifications")
+}
+
+model VolunteerAvailability {
+  id             String   @id @default(cuid())
+  organizationId String
+  volunteerId    String
+  weekday        Weekday
+  startTime      String
+  endTime        String
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  volunteer    VolunteerProfile @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@index([volunteerId])
+  @@map("volunteer_availabilities")
+}
+
+model VolunteerMinistryPreference {
+  id             String   @id @default(cuid())
+  organizationId String
+  volunteerId    String
+  ministryId     String
+  priority       Int      @default(1)
+  createdAt      DateTime @default(now())
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  volunteer    VolunteerProfile @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  ministry     Ministry        @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+
+  @@unique([volunteerId, ministryId])
+  @@map("volunteer_ministry_preferences")
+}
+
+model ScheduleEvent {
+  id             String            @id @default(cuid())
+  organizationId String
+  ministryId     String?
+  title          String
+  eventType      ScheduleEventType @default(SUNDAY_SERVICE)
+  campus         String?
+  startsAt       DateTime
+  endsAt         DateTime?
+  location       String?
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ministry     Ministry?    @relation(fields: [ministryId], references: [id], onDelete: SetNull)
+  slots        ScheduleSlot[]
+
+  @@index([organizationId, startsAt])
+  @@index([ministryId])
+  @@map("schedule_events")
+}
+
+model ScheduleSlot {
+  id             String   @id @default(cuid())
+  organizationId String
+  eventId        String
+  roleId         String?
+  title          String
+  needed         Int      @default(1)
+  startsAt       DateTime
+  endsAt         DateTime?
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ScheduleEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  role         MinistryRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  assignments  ScheduleAssignment[]
+
+  @@index([organizationId, eventId])
+  @@map("schedule_slots")
+}
+
+model ScheduleAssignment {
+  id             String                   @id @default(cuid())
+  organizationId String
+  slotId         String
+  volunteerId    String
+  status         ScheduleAssignmentStatus @default(ASSIGNED)
+  notes          String?
+  assignedAt     DateTime                 @default(now())
+  respondedAt    DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  slot         ScheduleSlot     @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  volunteer    VolunteerProfile @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  checkIns     VolunteerCheckIn[]
+  swapFrom     ScheduleSwapRequest[] @relation("SwapAssignmentFrom")
+  swapTo       ScheduleSwapRequest[] @relation("SwapAssignmentTo")
+
+  @@unique([slotId, volunteerId])
+  @@index([organizationId, volunteerId])
+  @@index([slotId, status])
+  @@map("schedule_assignments")
+}
+
+model ScheduleSwapRequest {
+  id                 String           @id @default(cuid())
+  organizationId     String
+  fromAssignmentId   String
+  toAssignmentId     String?
+  fromVolunteerId    String
+  toVolunteerId      String?
+  status             SwapRequestStatus @default(PENDING)
+  message            String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  resolvedAt         DateTime?
+
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fromAssignment ScheduleAssignment @relation("SwapAssignmentFrom", fields: [fromAssignmentId], references: [id], onDelete: Cascade)
+  toAssignment   ScheduleAssignment? @relation("SwapAssignmentTo", fields: [toAssignmentId], references: [id], onDelete: SetNull)
+  fromVolunteer  VolunteerProfile  @relation("SwapFrom", fields: [fromVolunteerId], references: [id], onDelete: Cascade)
+  toVolunteer    VolunteerProfile? @relation("SwapTo", fields: [toVolunteerId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@map("schedule_swap_requests")
+}
+
+model VolunteerCheckIn {
+  id             String                 @id @default(cuid())
+  organizationId String
+  volunteerId    String
+  assignmentId   String?
+  status         VolunteerCheckInStatus @default(CHECKED_IN)
+  checkedInAt    DateTime               @default(now())
+  notes          String?
+  createdAt      DateTime               @default(now())
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  volunteer    VolunteerProfile  @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  assignment   ScheduleAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, volunteerId, checkedInAt])
+  @@map("volunteer_check_ins")
+}
+
+model VolunteerMessage {
+  id             String                  @id @default(cuid())
+  organizationId String
+  volunteerId    String?
+  ministryId     String?
+  channel        VolunteerMessageChannel @default(IN_APP)
+  subject        String?
+  body           String
+  actorUserId    String?
+  metadata       Json?
+  sentAt         DateTime                @default(now())
+  createdAt      DateTime                @default(now())
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  volunteer    VolunteerProfile? @relation(fields: [volunteerId], references: [id], onDelete: SetNull)
+  ministry     Ministry?        @relation(fields: [ministryId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, sentAt])
+  @@map("volunteer_messages")
+}
+
+model VolunteerActivity {
+  id             String                @id @default(cuid())
+  organizationId String
+  volunteerId    String
+  type           VolunteerActivityType
+  title          String
+  description    String?
+  actorUserId    String?
+  metadata       Json?
+  occurredAt     DateTime              @default(now())
+  createdAt      DateTime              @default(now())
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  volunteer    VolunteerProfile @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, volunteerId, occurredAt])
+  @@map("volunteer_activities")
 }

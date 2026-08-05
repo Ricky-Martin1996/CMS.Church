@@ -10,8 +10,9 @@ import {
   VisitorPipelineStage,
 } from "@prisma/client";
 import { DEFAULT_TAGS } from "../src/domain/enums/member";
+import { DEFAULT_MINISTRIES } from "../src/domain/enums/ministry";
 import { DEFAULT_VISITOR_STAGE_CONFIGS } from "../src/domain/enums/visitor";
-import { subDays, subMonths, startOfDay } from "date-fns";
+import { nextSunday, setHours, setMinutes, subDays, subMonths, startOfDay } from "date-fns";
 
 const prisma = new PrismaClient();
 
@@ -1275,6 +1276,342 @@ async function main() {
         },
       ],
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Ministry & Volunteer Management (Grace Community)
+  // ---------------------------------------------------------------------------
+  const ministryCount = await prisma.ministry.count({
+    where: { organizationId: grace.id },
+  });
+  if (ministryCount === 0) {
+    for (let i = 0; i < DEFAULT_MINISTRIES.length; i++) {
+      const def = DEFAULT_MINISTRIES[i]!;
+      const ministry = await prisma.ministry.create({
+        data: {
+          organizationId: grace.id,
+          name: def.name,
+          slug: def.slug,
+          description: def.description,
+          color: def.color,
+          isDefault: true,
+          sortOrder: i,
+          roles: {
+            create: def.roles.map((name, r) => ({
+              organizationId: grace.id,
+              name,
+              sortOrder: r,
+            })),
+          },
+        },
+      });
+      if (def.slug === "worship") {
+        await prisma.ministry.update({
+          where: { id: ministry.id },
+          data: { leaderMemberId: sarah.id },
+        });
+      }
+    }
+  }
+
+  const ministries = await prisma.ministry.findMany({
+    where: { organizationId: grace.id },
+    include: { roles: true },
+  });
+  const ministryBySlug = Object.fromEntries(ministries.map((m) => [m.slug, m]));
+
+  async function ensureVolunteerProfile(input: {
+    memberId: string;
+    ministrySlug: string;
+    skills: string[];
+    preferredService?: string;
+    experienceYears?: number;
+    reliabilityScore?: number;
+  }) {
+    const ministry = ministryBySlug[input.ministrySlug];
+    if (!ministry) return null;
+
+    const existing = await prisma.volunteerProfile.findUnique({
+      where: { memberId: input.memberId },
+    });
+    if (existing) return existing;
+
+    return prisma.volunteerProfile.create({
+      data: {
+        organizationId: grace.id,
+        memberId: input.memberId,
+        experienceYears: input.experienceYears ?? 2,
+        trainingStatus: "COMPLETED",
+        preferredService: input.preferredService ?? "Sunday Morning",
+        reliabilityScore: input.reliabilityScore ?? 85,
+        totalHours: 48,
+        isActive: true,
+        skills: {
+          create: input.skills.map((name) => ({
+            organizationId: grace.id,
+            name,
+          })),
+        },
+        availabilities: {
+          create: [
+            {
+              organizationId: grace.id,
+              weekday: "SUN",
+              startTime: "07:00",
+              endTime: "13:00",
+            },
+            {
+              organizationId: grace.id,
+              weekday: "WED",
+              startTime: "18:00",
+              endTime: "21:00",
+            },
+          ],
+        },
+        preferences: {
+          create: {
+            organizationId: grace.id,
+            ministryId: ministry.id,
+            priority: 1,
+          },
+        },
+      },
+    });
+  }
+
+  const sarahVolunteer = await ensureVolunteerProfile({
+    memberId: sarah.id,
+    ministrySlug: "worship",
+    skills: ["Vocals", "Piano", "Worship Leading"],
+    preferredService: "Sunday Morning",
+    experienceYears: 5,
+    reliabilityScore: 92,
+  });
+  const marcusVolunteer = await ensureVolunteerProfile({
+    memberId: marcus.id,
+    ministrySlug: "kids",
+    skills: ["Teaching", "Mentoring"],
+    experienceYears: 8,
+    reliabilityScore: 94,
+  });
+  const elenaVolunteer = await ensureVolunteerProfile({
+    memberId: elena.id,
+    ministrySlug: "kids",
+    skills: ["Children's Ministry", "Storytelling"],
+    experienceYears: 3,
+    reliabilityScore: 88,
+  });
+  const noahVolunteer = await ensureVolunteerProfile({
+    memberId: noah.id,
+    ministrySlug: "youth",
+    skills: ["Games", "Small Group"],
+    experienceYears: 1,
+    reliabilityScore: 78,
+  });
+  const priyaVolunteer = await ensureVolunteerProfile({
+    memberId: priya.id,
+    ministrySlug: "prayer",
+    skills: ["Intercession", "Altar Ministry"],
+    experienceYears: 4,
+    reliabilityScore: 90,
+  });
+
+  const upcomingSunday = setMinutes(setHours(nextSunday(new Date()), 10), 0);
+  const serviceEnd = setMinutes(setHours(upcomingSunday, 12), 30);
+
+  const existingEvent = await prisma.scheduleEvent.findFirst({
+    where: {
+      organizationId: grace.id,
+      title: "Sunday Worship Service",
+      startsAt: upcomingSunday,
+    },
+  });
+
+  if (!existingEvent && sarahVolunteer) {
+    const worshipMinistry = ministryBySlug.worship!;
+    const kidsMinistry = ministryBySlug.kids!;
+    const youthMinistry = ministryBySlug.youth!;
+    const prayerMinistry = ministryBySlug.prayer!;
+
+    const worshipLeaderRole = worshipMinistry.roles.find(
+      (r) => r.name === "Worship Leader"
+    );
+    const vocalistRole = worshipMinistry.roles.find((r) => r.name === "Vocalist");
+    const teacherRole = kidsMinistry.roles.find((r) => r.name === "Teacher");
+    const youthLeaderRole = youthMinistry.roles.find((r) => r.name === "Leader");
+    const prayerRole = prayerMinistry.roles.find((r) => r.name === "Prayer Team");
+
+    const event = await prisma.scheduleEvent.create({
+      data: {
+        organizationId: grace.id,
+        ministryId: worshipMinistry.id,
+        title: "Sunday Worship Service",
+        eventType: "SUNDAY_SERVICE",
+        campus: "Main Campus",
+        startsAt: upcomingSunday,
+        endsAt: serviceEnd,
+        location: "Main Sanctuary",
+        notes: "Upcoming Sunday volunteer schedule",
+        slots: {
+          create: [
+            {
+              organizationId: grace.id,
+              roleId: worshipLeaderRole?.id,
+              title: "Worship Leader",
+              needed: 1,
+              startsAt: setMinutes(setHours(upcomingSunday, 8), 30),
+              endsAt: serviceEnd,
+              sortOrder: 0,
+            },
+            {
+              organizationId: grace.id,
+              roleId: vocalistRole?.id,
+              title: "Vocalist",
+              needed: 2,
+              startsAt: setMinutes(setHours(upcomingSunday, 8), 45),
+              endsAt: serviceEnd,
+              sortOrder: 1,
+            },
+            {
+              organizationId: grace.id,
+              roleId: teacherRole?.id,
+              title: "Kids Teacher",
+              needed: 2,
+              startsAt: upcomingSunday,
+              endsAt: serviceEnd,
+              sortOrder: 2,
+            },
+            {
+              organizationId: grace.id,
+              roleId: youthLeaderRole?.id,
+              title: "Youth Helper",
+              needed: 1,
+              startsAt: upcomingSunday,
+              endsAt: serviceEnd,
+              sortOrder: 3,
+            },
+            {
+              organizationId: grace.id,
+              roleId: prayerRole?.id,
+              title: "Prayer Team",
+              needed: 2,
+              startsAt: upcomingSunday,
+              endsAt: serviceEnd,
+              sortOrder: 4,
+            },
+          ],
+        },
+      },
+      include: { slots: true },
+    });
+
+    const slotByTitle = Object.fromEntries(event.slots.map((s) => [s.title, s]));
+
+    const sarahAssignment = sarahVolunteer
+      ? await prisma.scheduleAssignment.create({
+          data: {
+            organizationId: grace.id,
+            slotId: slotByTitle["Worship Leader"]!.id,
+            volunteerId: sarahVolunteer.id,
+            status: "CONFIRMED",
+            respondedAt: new Date(),
+          },
+        })
+      : null;
+
+    if (elenaVolunteer) {
+      await prisma.scheduleAssignment.create({
+        data: {
+          organizationId: grace.id,
+          slotId: slotByTitle["Kids Teacher"]!.id,
+          volunteerId: elenaVolunteer.id,
+          status: "CONFIRMED",
+          respondedAt: new Date(),
+        },
+      });
+    }
+
+    if (marcusVolunteer) {
+      await prisma.scheduleAssignment.create({
+        data: {
+          organizationId: grace.id,
+          slotId: slotByTitle["Kids Teacher"]!.id,
+          volunteerId: marcusVolunteer.id,
+          status: "ASSIGNED",
+        },
+      });
+    }
+
+    if (noahVolunteer) {
+      await prisma.scheduleAssignment.create({
+        data: {
+          organizationId: grace.id,
+          slotId: slotByTitle["Youth Helper"]!.id,
+          volunteerId: noahVolunteer.id,
+          status: "CONFIRMED",
+          respondedAt: new Date(),
+        },
+      });
+    }
+
+    if (priyaVolunteer) {
+      await prisma.scheduleAssignment.create({
+        data: {
+          organizationId: grace.id,
+          slotId: slotByTitle["Prayer Team"]!.id,
+          volunteerId: priyaVolunteer.id,
+          status: "CONFIRMED",
+          respondedAt: new Date(),
+        },
+      });
+    }
+
+    if (sarahAssignment && sarahVolunteer) {
+      await prisma.volunteerCheckIn.create({
+        data: {
+          organizationId: grace.id,
+          volunteerId: sarahVolunteer.id,
+          assignmentId: sarahAssignment.id,
+          status: "CHECKED_IN",
+          checkedInAt: subDays(upcomingSunday, 7),
+          notes: "On time for rehearsal (prior week demo)",
+        },
+      });
+    }
+
+    if (elenaVolunteer) {
+      await prisma.volunteerCheckIn.create({
+        data: {
+          organizationId: grace.id,
+          volunteerId: elenaVolunteer.id,
+          status: "LATE",
+          checkedInAt: subDays(upcomingSunday, 7),
+          notes: "Arrived 10 minutes late last service",
+        },
+      });
+    }
+
+    if (sarahVolunteer && elenaVolunteer) {
+      await prisma.volunteerActivity.createMany({
+        data: [
+          {
+            organizationId: grace.id,
+            volunteerId: sarahVolunteer.id,
+            type: "ASSIGNED",
+            title: "Assigned to Worship Leader",
+            description: "Sunday Worship Service",
+            occurredAt: subDays(new Date(), 3),
+          },
+          {
+            organizationId: grace.id,
+            volunteerId: elenaVolunteer.id,
+            type: "CONFIRMED",
+            title: "Confirmed Kids Teacher slot",
+            occurredAt: subDays(new Date(), 2),
+          },
+        ],
+      });
+    }
   }
 }
 
