@@ -1613,6 +1613,537 @@ async function main() {
       });
     }
   }
+
+  // ===========================================================================
+  // Enterprise Events & Church Calendar (Grace Community)
+  // ===========================================================================
+  const churchEventCount = await prisma.churchEvent.count({
+    where: { organizationId: grace.id },
+  });
+
+  if (churchEventCount === 0) {
+    const sunday = nextSunday(new Date());
+    const sundayStart = setMinutes(setHours(sunday, 10), 0);
+    const sundayEnd = setMinutes(setHours(sunday, 12), 0);
+    const youthNight = setMinutes(setHours(addDaysSafe(sunday, 5), 19), 0);
+    const prayer = setMinutes(setHours(addDaysSafe(sunday, -2), 18), 30);
+    const bibleStudy = setMinutes(setHours(addDaysSafe(sunday, 3), 19), 0);
+    const outreach = setMinutes(setHours(addDaysSafe(sunday, 12), 9), 0);
+    const conference = setMinutes(setHours(addDaysSafe(sunday, 21), 9), 0);
+
+    const worshipMinistry = await prisma.ministry.findFirst({
+      where: { organizationId: grace.id, slug: "worship" },
+    });
+    const youthMinistry = await prisma.ministry.findFirst({
+      where: { organizationId: grace.id, slug: "youth" },
+    });
+    const kidsMinistry = await prisma.ministry.findFirst({
+      where: { organizationId: grace.id, slug: "kids" },
+    });
+    const prayerMinistry = await prisma.ministry.findFirst({
+      where: { organizationId: grace.id, slug: "prayer" },
+    });
+
+    const scheduleSunday = await prisma.scheduleEvent.findFirst({
+      where: {
+        organizationId: grace.id,
+        title: { contains: "Sunday" },
+      },
+      orderBy: { startsAt: "asc" },
+    });
+
+    const members = await prisma.member.findMany({
+      where: { organizationId: grace.id },
+      take: 8,
+      orderBy: { firstName: "asc" },
+    });
+
+    const sundayService = await prisma.churchEvent.create({
+      data: {
+        organizationId: grace.id,
+        title: "Sunday Worship Service",
+        slug: "sunday-worship-service",
+        description:
+          "Our weekly gathering — worship, Word, and communion. Families welcome; kids ministry available during the message.",
+        heroImageUrl:
+          "https://images.unsplash.com/photo-1438232036014-b7b9bdfd957a?w=1600&q=80",
+        eventType: "SUNDAY_SERVICE",
+        status: "PUBLISHED",
+        visibility: "PUBLIC",
+        startsAt: sundayStart,
+        endsAt: sundayEnd,
+        timezone: "America/New_York",
+        venueName: "Main Sanctuary",
+        venueAddress: "100 Grace Way",
+        campus: "Main Campus",
+        capacity: 450,
+        registrationOpen: true,
+        waitlistEnabled: true,
+        requiresTicket: true,
+        organizerMemberId: members[0]?.id ?? null,
+        recurrence: "WEEKLY",
+        recurrenceRule: "FREQ=WEEKLY;BYDAY=SU",
+        scheduleEventId: scheduleSunday?.id ?? null,
+        publishedAt: subDays(new Date(), 14),
+        speakers: {
+          create: [
+            {
+              organizationId: grace.id,
+              name: "Pastor James Rivera",
+              title: "Lead Pastor",
+              bio: "Teaching through the Gospel of John.",
+              sortOrder: 0,
+            },
+          ],
+        },
+        resources: {
+          create: [
+            {
+              organizationId: grace.id,
+              type: "ROOM",
+              name: "Main Sanctuary",
+              quantity: 1,
+            },
+            {
+              organizationId: grace.id,
+              type: "EQUIPMENT",
+              name: "Worship PA / livestream kit",
+              quantity: 1,
+            },
+          ],
+        },
+        ministries: {
+          create: [
+            ...(worshipMinistry
+              ? [
+                  {
+                    organizationId: grace.id,
+                    ministryId: worshipMinistry.id,
+                  },
+                ]
+              : []),
+            ...(kidsMinistry
+              ? [
+                  {
+                    organizationId: grace.id,
+                    ministryId: kidsMinistry.id,
+                    notes: "Kids church during sermon",
+                  },
+                ]
+              : []),
+          ],
+        },
+        attachments: {
+          create: [
+            {
+              organizationId: grace.id,
+              name: "Order of Service.pdf",
+              mimeType: "application/pdf",
+              sizeBytes: 182000,
+              storageKey: "seed/sunday-oos.pdf",
+              url: null,
+            },
+          ],
+        },
+      },
+    });
+
+    const youth = await prisma.churchEvent.create({
+      data: {
+        organizationId: grace.id,
+        title: "Friday Youth Night",
+        slug: "friday-youth-night",
+        description: "Games, worship, and small groups for middle & high school.",
+        heroImageUrl:
+          "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&q=80",
+        eventType: "YOUTH_SERVICE",
+        status: "PUBLISHED",
+        visibility: "MEMBERS",
+        startsAt: youthNight,
+        endsAt: setMinutes(setHours(youthNight, 21), 0),
+        venueName: "Youth Loft",
+        campus: "Main Campus",
+        capacity: 80,
+        recurrence: "WEEKLY",
+        publishedAt: subDays(new Date(), 7),
+        ministries: youthMinistry
+          ? {
+              create: [
+                {
+                  organizationId: grace.id,
+                  ministryId: youthMinistry.id,
+                },
+              ],
+            }
+          : undefined,
+        speakers: {
+          create: [
+            {
+              organizationId: grace.id,
+              name: "Coach Maya Chen",
+              title: "Youth Pastor",
+              sortOrder: 0,
+            },
+          ],
+        },
+      },
+    });
+
+    const prayerMeeting = await prisma.churchEvent.create({
+      data: {
+        organizationId: grace.id,
+        title: "Midweek Prayer Meeting",
+        slug: "midweek-prayer",
+        description: "Corporate prayer for our city and church family.",
+        eventType: "PRAYER_MEETING",
+        status: "PUBLISHED",
+        startsAt: prayer,
+        endsAt: setMinutes(setHours(prayer, 20), 0),
+        venueName: "Chapel",
+        capacity: 60,
+        recurrence: "WEEKLY",
+        publishedAt: subDays(new Date(), 5),
+        ministries: prayerMinistry
+          ? {
+              create: [
+                {
+                  organizationId: grace.id,
+                  ministryId: prayerMinistry.id,
+                },
+              ],
+            }
+          : undefined,
+      },
+    });
+
+    await prisma.churchEvent.create({
+      data: {
+        organizationId: grace.id,
+        title: "Wednesday Bible Study",
+        slug: "wednesday-bible-study",
+        description: "Verse-by-verse study open to all adults.",
+        eventType: "BIBLE_STUDY",
+        status: "PUBLISHED",
+        startsAt: bibleStudy,
+        endsAt: setMinutes(setHours(bibleStudy, 20), 30),
+        venueName: "Fellowship Hall",
+        capacity: 100,
+        recurrence: "WEEKLY",
+        publishedAt: subDays(new Date(), 4),
+      },
+    });
+
+    await prisma.churchEvent.create({
+      data: {
+        organizationId: grace.id,
+        title: "Community Outreach Saturday",
+        slug: "community-outreach-saturday",
+        description: "Food pantry + neighborhood blessing bags.",
+        eventType: "OUTREACH",
+        status: "PUBLISHED",
+        startsAt: outreach,
+        endsAt: setMinutes(setHours(outreach, 13), 0),
+        venueName: "Grace Parking Lot",
+        capacity: 120,
+        registrationOpen: true,
+        publishedAt: subDays(new Date(), 2),
+      },
+    });
+
+    await prisma.churchEvent.create({
+      data: {
+        organizationId: grace.id,
+        title: "Leadership Training Intensive",
+        slug: "leadership-training-intensive",
+        description: "Two-day equipping for cell & ministry leaders.",
+        eventType: "TRAINING",
+        status: "DRAFT",
+        startsAt: setMinutes(setHours(addDaysSafe(sunday, 28), 9), 0),
+        endsAt: setMinutes(setHours(addDaysSafe(sunday, 29), 16), 0),
+        venueName: "Admin Building · Room 2",
+        capacity: 40,
+        visibility: "INVITE_ONLY",
+      },
+    });
+
+    await prisma.churchEvent.create({
+      data: {
+        organizationId: grace.id,
+        title: "Citywide Faith Conference",
+        slug: "citywide-faith-conference",
+        description: "Guest speakers, workshops, and night of worship.",
+        eventType: "CONFERENCE",
+        status: "PUBLISHED",
+        startsAt: conference,
+        endsAt: setMinutes(setHours(addDaysSafe(conference, 1), 21), 0),
+        venueName: "Main Sanctuary",
+        capacity: 600,
+        waitlistEnabled: true,
+        publishedAt: new Date(),
+        speakers: {
+          create: [
+            {
+              organizationId: grace.id,
+              name: "Dr. Amina Okonkwo",
+              title: "Keynote",
+              sortOrder: 0,
+            },
+            {
+              organizationId: grace.id,
+              name: "Pastor James Rivera",
+              title: "Host",
+              sortOrder: 1,
+            },
+          ],
+        },
+        resources: {
+          create: [
+            {
+              organizationId: grace.id,
+              type: "ROOM",
+              name: "Sanctuary + overflow",
+              quantity: 2,
+            },
+            {
+              organizationId: grace.id,
+              type: "VEHICLE",
+              name: "Shuttle van",
+              quantity: 2,
+              notes: "Airport + hotel runs",
+            },
+          ],
+        },
+      },
+    });
+
+    await prisma.churchEvent.create({
+      data: {
+        organizationId: grace.id,
+        title: "Children's Easter Celebration",
+        slug: "childrens-easter-celebration",
+        description: "Games, story time, and family picnic.",
+        eventType: "CHILDREN_EVENT",
+        status: "PUBLISHED",
+        startsAt: setMinutes(setHours(addDaysSafe(sunday, 35), 11), 0),
+        endsAt: setMinutes(setHours(addDaysSafe(sunday, 35), 14), 0),
+        venueName: "Kids Wing & Lawn",
+        capacity: 150,
+        publishedAt: new Date(),
+        ministries: kidsMinistry
+          ? {
+              create: [
+                {
+                  organizationId: grace.id,
+                  ministryId: kidsMinistry.id,
+                },
+              ],
+            }
+          : undefined,
+      },
+    });
+
+    // Registrations + QR tickets for Sunday service
+    const guestReg = await prisma.eventRegistration.create({
+      data: {
+        organizationId: grace.id,
+        eventId: sundayService.id,
+        registrantType: "GUEST",
+        guestName: "Alex Nguyen",
+        guestEmail: "alex.nguyen@example.com",
+        partySize: 2,
+        status: "REGISTERED",
+        tickets: {
+          create: [
+            {
+              organizationId: grace.id,
+              eventId: sundayService.id,
+              holderName: "Alex Nguyen",
+              status: "VALID",
+            },
+            {
+              organizationId: grace.id,
+              eventId: sundayService.id,
+              holderName: "Guest of Alex",
+              status: "VALID",
+            },
+          ],
+        },
+      },
+      include: { tickets: true },
+    });
+
+    if (members[0]) {
+      await prisma.eventRegistration.create({
+        data: {
+          organizationId: grace.id,
+          eventId: sundayService.id,
+          registrantType: "MEMBER",
+          memberId: members[0].id,
+          partySize: 1,
+          status: "CHECKED_IN",
+          checkedInAt: sundayStart,
+          tickets: {
+            create: [
+              {
+                organizationId: grace.id,
+                eventId: sundayService.id,
+                holderName: `${members[0].firstName} ${members[0].lastName}`,
+                status: "USED",
+                usedAt: sundayStart,
+              },
+            ],
+          },
+        },
+      });
+    }
+
+    if (members[1]) {
+      const reg = await prisma.eventRegistration.create({
+        data: {
+          organizationId: grace.id,
+          eventId: youth.id,
+          registrantType: "MEMBER",
+          memberId: members[1].id,
+          partySize: 1,
+          status: "REGISTERED",
+          tickets: {
+            create: [
+              {
+                organizationId: grace.id,
+                eventId: youth.id,
+                holderName: `${members[1].firstName} ${members[1].lastName}`,
+                status: "VALID",
+              },
+            ],
+          },
+        },
+      });
+      void reg;
+    }
+
+    // Family / group style registration
+    await prisma.eventRegistration.create({
+      data: {
+        organizationId: grace.id,
+        eventId: sundayService.id,
+        registrantType: "GROUP",
+        guestName: "Hospitality Team",
+        partySize: 6,
+        status: "REGISTERED",
+        notes: "Serving coffee after service",
+        tickets: {
+          create: Array.from({ length: 6 }, (_, i) => ({
+            organizationId: grace.id,
+            eventId: sundayService.id,
+            holderName: `Hospitality ${i + 1}`,
+            status: "VALID" as const,
+          })),
+        },
+      },
+    });
+
+    // Waitlist demo on conference-sized capacity pressure for prayer (small)
+    await prisma.eventRegistration.create({
+      data: {
+        organizationId: grace.id,
+        eventId: prayerMeeting.id,
+        registrantType: "GUEST",
+        guestName: "Waitlist Guest",
+        partySize: 1,
+        status: "WAITLISTED",
+      },
+    });
+    await prisma.eventWaitlistEntry.create({
+      data: {
+        organizationId: grace.id,
+        eventId: prayerMeeting.id,
+        guestName: "Waitlist Guest",
+        partySize: 1,
+        position: 1,
+      },
+    });
+
+    const usedTicket = await prisma.eventTicket.findFirst({
+      where: {
+        eventId: sundayService.id,
+        status: "USED",
+      },
+    });
+    if (usedTicket && members[0]) {
+      await prisma.eventCheckIn.create({
+        data: {
+          organizationId: grace.id,
+          eventId: sundayService.id,
+          ticketId: usedTicket.id,
+          registrationId: usedTicket.registrationId,
+          memberId: members[0].id,
+          method: "QR",
+          checkedInAt: sundayStart,
+        },
+      });
+    }
+
+    await prisma.eventActivity.createMany({
+      data: [
+        {
+          organizationId: grace.id,
+          eventId: sundayService.id,
+          type: "CREATED",
+          title: "Event created",
+          occurredAt: subDays(new Date(), 14),
+        },
+        {
+          organizationId: grace.id,
+          eventId: sundayService.id,
+          type: "PUBLISHED",
+          title: "Event published",
+          occurredAt: subDays(new Date(), 14),
+        },
+        {
+          organizationId: grace.id,
+          eventId: sundayService.id,
+          type: "REGISTRATION",
+          title: "Registration confirmed",
+          description: guestReg.guestName ?? "Guest",
+          occurredAt: subDays(new Date(), 2),
+        },
+        {
+          organizationId: grace.id,
+          eventId: sundayService.id,
+          type: "CHECKED_IN",
+          title: "Check-in via QR",
+          occurredAt: sundayStart,
+        },
+        {
+          organizationId: grace.id,
+          eventId: youth.id,
+          type: "PUBLISHED",
+          title: "Youth night published",
+          occurredAt: subDays(new Date(), 7),
+        },
+      ],
+    });
+
+    await prisma.eventMessage.create({
+      data: {
+        organizationId: grace.id,
+        eventId: sundayService.id,
+        channel: "EMAIL",
+        subject: "See you Sunday!",
+        body: "Parking opens at 9:15. Kids check-in in the lobby.",
+        metadata: { provider: null, queued: false },
+        scheduledFor: subDays(sundayStart, 1),
+      },
+    });
+
+    console.log("✓ Seeded church calendar events for Grace Community");
+  }
+}
+
+function addDaysSafe(date: Date, days: number) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
 }
 
 main()

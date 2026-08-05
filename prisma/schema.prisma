@@ -105,6 +105,17 @@ model Organization {
   volunteerCertifications VolunteerCertification[]
   volunteerAvailabilities VolunteerAvailability[]
   volunteerMinistryPrefs VolunteerMinistryPreference[]
+  churchEvents     ChurchEvent[]
+  eventRegistrations EventRegistration[]
+  eventTickets     EventTicket[]
+  eventCheckIns    EventCheckIn[]
+  eventSpeakers    EventSpeaker[]
+  eventAttachments EventAttachment[]
+  eventResources   EventResource[]
+  eventMinistries  EventMinistry[]
+  eventWaitlist    EventWaitlistEntry[]
+  eventActivities  EventActivity[]
+  eventMessages    EventMessage[]
 
   @@index([slug])
   @@map("organizations")
@@ -1102,6 +1113,7 @@ model Ministry {
   events       ScheduleEvent[]
   preferences  VolunteerMinistryPreference[]
   messages     VolunteerMessage[]
+  eventMinistries EventMinistry[]
 
   @@unique([organizationId, slug])
   @@index([organizationId, status])
@@ -1374,4 +1386,369 @@ model VolunteerActivity {
 
   @@index([organizationId, volunteerId, occurredAt])
   @@map("volunteer_activities")
+}
+
+// =============================================================================
+// Enterprise Events & Church Calendar
+// =============================================================================
+
+enum ChurchEventType {
+  SUNDAY_SERVICE
+  YOUTH_SERVICE
+  PRAYER_MEETING
+  BIBLE_STUDY
+  CELL_GROUP
+  CONFERENCE
+  RETREAT
+  WEDDING
+  FUNERAL
+  OUTREACH
+  TRAINING
+  CHILDREN_EVENT
+  VOLUNTEER_MEETING
+  CUSTOM
+}
+
+enum ChurchEventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+  ARCHIVED
+}
+
+enum EventVisibility {
+  PUBLIC
+  MEMBERS
+  INVITE_ONLY
+  PRIVATE
+}
+
+enum RecurrenceFrequency {
+  NONE
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  YEARLY
+  CUSTOM
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  WAITLISTED
+  CANCELLED
+  CHECKED_IN
+  NO_SHOW
+}
+
+enum RegistrantType {
+  MEMBER
+  VISITOR
+  HOUSEHOLD
+  GUEST
+  GROUP
+}
+
+enum EventTicketStatus {
+  VALID
+  USED
+  REVOKED
+  EXPIRED
+}
+
+enum EventResourceType {
+  ROOM
+  EQUIPMENT
+  VEHICLE
+  OTHER
+}
+
+enum EventActivityType {
+  CREATED
+  UPDATED
+  PUBLISHED
+  CANCELLED
+  REGISTRATION
+  WAITLIST
+  CHECKED_IN
+  MESSAGE_QUEUED
+  VOLUNTEER_LINKED
+  ATTACHMENT_ADDED
+}
+
+enum EventMessageChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+  PUSH
+  IN_APP
+}
+
+/// Operational church calendar event (distinct from ministry ScheduleEvent staffing).
+model ChurchEvent {
+  id                String            @id @default(cuid())
+  organizationId    String
+  title             String
+  slug              String
+  description       String?
+  heroImageUrl      String?
+  eventType         ChurchEventType   @default(CUSTOM)
+  status            ChurchEventStatus @default(DRAFT)
+  visibility        EventVisibility   @default(MEMBERS)
+  startsAt          DateTime
+  endsAt            DateTime?
+  timezone          String            @default("UTC")
+  allDay            Boolean           @default(false)
+  venueName         String?
+  venueAddress      String?
+  campus            String?
+  capacity          Int?
+  registrationOpen  Boolean           @default(true)
+  waitlistEnabled   Boolean           @default(true)
+  requiresTicket    Boolean           @default(true)
+  organizerMemberId String?
+  organizerUserId   String?
+  recurrence        RecurrenceFrequency @default(NONE)
+  recurrenceRule    String?
+  recurrenceUntil   DateTime?
+  parentEventId     String?
+  scheduleEventId   String?
+  checkInCode       String            @unique @default(cuid())
+  notes             String?
+  publishedAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  deletedAt         DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       ChurchEvent? @relation("EventSeries", fields: [parentEventId], references: [id], onDelete: SetNull)
+  children     ChurchEvent[] @relation("EventSeries")
+  registrations EventRegistration[]
+  tickets      EventTicket[]
+  checkIns     EventCheckIn[]
+  speakers     EventSpeaker[]
+  attachments  EventAttachment[]
+  resources    EventResource[]
+  ministries   EventMinistry[]
+  waitlist     EventWaitlistEntry[]
+  activities   EventActivity[]
+  messages     EventMessage[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, startsAt])
+  @@index([organizationId, status])
+  @@index([organizationId, eventType])
+  @@index([organizationId, deletedAt])
+  @@index([checkInCode])
+  @@map("church_events")
+}
+
+model EventRegistration {
+  id               String             @id @default(cuid())
+  organizationId   String
+  eventId          String
+  registrantType   RegistrantType     @default(MEMBER)
+  memberId         String?
+  visitorId        String?
+  householdId      String?
+  guestName        String?
+  guestEmail       String?
+  guestPhone       String?
+  partySize        Int                @default(1)
+  status           RegistrationStatus @default(REGISTERED)
+  notes            String?
+  registeredAt     DateTime           @default(now())
+  cancelledAt      DateTime?
+  checkedInAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ChurchEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tickets      EventTicket[]
+  checkIns     EventCheckIn[]
+
+  @@index([organizationId, eventId, status])
+  @@index([eventId, memberId])
+  @@index([eventId, visitorId])
+  @@index([householdId])
+  @@map("event_registrations")
+}
+
+model EventTicket {
+  id               String            @id @default(cuid())
+  organizationId   String
+  eventId          String
+  registrationId   String
+  qrToken          String            @unique @default(cuid())
+  status           EventTicketStatus @default(VALID)
+  holderName       String?
+  issuedAt         DateTime          @default(now())
+  usedAt           DateTime?
+  createdAt        DateTime          @default(now())
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ChurchEvent       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration EventRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  checkIns     EventCheckIn[]
+
+  @@index([organizationId, eventId])
+  @@index([qrToken])
+  @@map("event_tickets")
+}
+
+model EventCheckIn {
+  id               String   @id @default(cuid())
+  organizationId   String
+  eventId          String
+  registrationId   String?
+  ticketId         String?
+  memberId         String?
+  method           String   @default("QR")
+  checkedInAt      DateTime @default(now())
+  checkedInByUserId String?
+  notes            String?
+  createdAt        DateTime @default(now())
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ChurchEvent        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration EventRegistration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  ticket       EventTicket?       @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, ticketId])
+  @@index([organizationId, eventId, checkedInAt])
+  @@index([eventId, memberId])
+  @@map("event_check_ins")
+}
+
+model EventSpeaker {
+  id             String   @id @default(cuid())
+  organizationId String
+  eventId        String
+  memberId       String?
+  name           String
+  title          String?
+  bio            String?
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ChurchEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("event_speakers")
+}
+
+model EventAttachment {
+  id             String   @id @default(cuid())
+  organizationId String
+  eventId        String
+  name           String
+  mimeType       String
+  sizeBytes      Int
+  url            String?
+  storageKey     String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ChurchEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("event_attachments")
+}
+
+model EventResource {
+  id             String           @id @default(cuid())
+  organizationId String
+  eventId        String
+  type           EventResourceType @default(OTHER)
+  name           String
+  quantity       Int              @default(1)
+  notes          String?
+  createdAt      DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ChurchEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("event_resources")
+}
+
+model EventMinistry {
+  id             String   @id @default(cuid())
+  organizationId String
+  eventId        String
+  ministryId     String
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ChurchEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ministry     Ministry     @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, ministryId])
+  @@index([ministryId])
+  @@map("event_ministries")
+}
+
+model EventWaitlistEntry {
+  id             String   @id @default(cuid())
+  organizationId String
+  eventId        String
+  memberId       String?
+  visitorId      String?
+  guestName      String?
+  guestEmail     String?
+  guestPhone     String?
+  partySize      Int      @default(1)
+  position       Int
+  promotedAt     DateTime?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ChurchEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, position])
+  @@map("event_waitlist")
+}
+
+model EventActivity {
+  id             String            @id @default(cuid())
+  organizationId String
+  eventId        String
+  type           EventActivityType
+  title          String
+  description    String?
+  actorUserId    String?
+  metadata       Json?
+  occurredAt     DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ChurchEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, eventId, occurredAt])
+  @@map("event_activities")
+}
+
+model EventMessage {
+  id             String             @id @default(cuid())
+  organizationId String
+  eventId        String
+  channel        EventMessageChannel @default(IN_APP)
+  subject        String?
+  body           String
+  actorUserId    String?
+  /// Future provider payload (SendGrid/Twilio/FCM)
+  metadata       Json?
+  scheduledFor   DateTime?
+  sentAt         DateTime?
+  createdAt      DateTime           @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  event        ChurchEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, eventId, createdAt])
+  @@map("event_messages")
 }

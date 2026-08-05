@@ -75,6 +75,16 @@ Open [http://localhost:3000](http://localhost:3000).
 - Analytics: coverage, hours, reliability, ministry growth
 - RBAC: `ministry:read|write`, `volunteer:read|write`, `schedule:manage`
 
+## Enterprise Events & Church Calendar
+
+- `/events` hub · `/events/calendar` · `/events/[id]` · `/events/[id]/check-in`
+- Full event ops: hero, recurrence, venue, capacity, registration, waitlist,
+  speakers, ministries, volunteers, attachments, resources
+- Secure QR tickets · QR / search / manual check-in · duplicate prevention
+- Communication hooks (Email / WhatsApp / SMS / Push) · activity timeline
+- Analytics: attendance, registration, no-show, volunteer coverage, capacity
+- RBAC: `event:read|write|publish|manage|checkin`
+
 ## Product UI
 
 - Glassmorphism UI with aurora animated backgrounds

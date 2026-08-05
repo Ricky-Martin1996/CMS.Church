@@ -42,6 +42,7 @@ const actions = [
   { name: "Add person", href: "/people", icon: Plus },
   { name: "Add household", href: "/households", icon: Home },
   { name: "Create event", href: "/events", icon: Plus },
+  { name: "Church calendar", href: "/events/calendar", icon: CalendarDays },
   { name: "Record gift", href: "/giving", icon: Plus },
 ];
 

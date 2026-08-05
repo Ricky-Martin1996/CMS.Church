@@ -48,8 +48,15 @@ export const Permission = {
   VISITOR_COMMUNICATE: "visitor:communicate",
   VISITOR_CONVERT: "visitor:convert",
 
-  // Events
+  // Events / Church Calendar (granular + legacy aliases)
+  EVENT_READ: "event:read",
+  EVENT_WRITE: "event:write",
+  EVENT_PUBLISH: "event:publish",
+  EVENT_MANAGE: "event:manage",
+  EVENT_CHECKIN: "event:checkin",
+  /** @deprecated use EVENT_READ */
   EVENTS_READ: "events:read",
+  /** @deprecated use EVENT_WRITE */
   EVENTS_WRITE: "events:write",
 
   // Groups / cells
@@ -87,9 +94,20 @@ const MEMBER_BASE: Permission[] = [
   Permission.VISITOR_READ,
   Permission.MINISTRY_READ,
   Permission.VOLUNTEER_READ,
+  Permission.EVENT_READ,
   Permission.EVENTS_READ,
   Permission.GROUPS_READ,
   Permission.SETTINGS_READ,
+];
+
+const EVENT_OPS: Permission[] = [
+  Permission.EVENT_READ,
+  Permission.EVENT_WRITE,
+  Permission.EVENT_PUBLISH,
+  Permission.EVENT_MANAGE,
+  Permission.EVENT_CHECKIN,
+  Permission.EVENTS_READ,
+  Permission.EVENTS_WRITE,
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
@@ -126,8 +144,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     Permission.VISITOR_ASSIGN,
     Permission.VISITOR_COMMUNICATE,
     Permission.VISITOR_CONVERT,
-    Permission.EVENTS_READ,
-    Permission.EVENTS_WRITE,
+    ...EVENT_OPS,
     Permission.GROUPS_READ,
     Permission.GROUPS_WRITE,
     Permission.GIVING_READ,
@@ -168,8 +185,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     Permission.VISITOR_ASSIGN,
     Permission.VISITOR_COMMUNICATE,
     Permission.VISITOR_CONVERT,
-    Permission.EVENTS_READ,
-    Permission.EVENTS_WRITE,
+    ...EVENT_OPS,
     Permission.GROUPS_READ,
     Permission.GROUPS_WRITE,
     Permission.GIVING_READ,
@@ -195,6 +211,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     Permission.VISITOR_WRITE,
     Permission.VISITOR_ASSIGN,
     Permission.VISITOR_COMMUNICATE,
+    Permission.EVENT_READ,
+    Permission.EVENT_CHECKIN,
     Permission.EVENTS_READ,
   ],
 
@@ -210,8 +228,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     Permission.PEOPLE_NOTES_LEADER,
     Permission.ATTENDANCE_WRITE,
     Permission.ATTENDANCE_SESSIONS,
-    Permission.EVENTS_READ,
-    Permission.EVENTS_WRITE,
+    ...EVENT_OPS,
   ],
 
   [Role.FINANCE_MANAGER]: [
@@ -230,6 +247,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
 
   [Role.GUEST]: [
     Permission.ORG_READ,
+    Permission.EVENT_READ,
     Permission.EVENTS_READ,
   ],
 };

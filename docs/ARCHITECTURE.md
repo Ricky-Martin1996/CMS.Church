@@ -11,6 +11,7 @@ src/
     attendance/           # Attendance & Check-in
     visitors/             # Visitor Journey & Follow-up
     ministries/           # Ministry & Volunteer Management
+    events/               # Enterprise Events & Church Calendar
   infrastructure/         # Prisma, repositories
   server/                 # Next.js server helpers (auth, rbac, tenant scope)
   app/                    # Presentation (App Router)
@@ -46,6 +47,9 @@ Visitor permissions: `visitor:read|write|assign|communicate|convert`.
 
 Ministry permissions: `ministry:read|write`, `volunteer:read|write`,
 `schedule:manage` (plus legacy `volunteers:read|write`).
+
+Event permissions: `event:read|write|publish|manage|checkin`
+(plus legacy `events:read|write`).
 
 ## Auth flow
 
@@ -101,6 +105,31 @@ Parking · Security · Administration (custom ministries supported).
 - Server actions: `src/application/ministries/actions.ts`
 
 `/groups` remains the life-groups mock module (separate from ministries).
+
+## Enterprise Events & Church Calendar
+
+Operational hub for every church gathering (distinct from ministry `ScheduleEvent`
+staffing). Optional `scheduleEventId` links calendar events to volunteer boards.
+
+Event types: Sunday Service · Youth · Prayer · Bible Study · Cell Group ·
+Conference · Retreat · Wedding · Funeral · Outreach · Training · Children ·
+Volunteer Meeting · Custom.
+
+- Hub: `/events` — hero, analytics, create, capacity
+- Detail: `/events/[id]` — registration, waitlist, speakers, ministries,
+  resources, attachments, activity timeline, communication hooks
+- Calendar: `/events/calendar` — month / week / agenda / timeline + drag-and-drop
+  reschedule
+- Check-in: `/events/[id]/check-in` — QR tickets, search, manual; duplicate
+  scan prevention
+- Models: `ChurchEvent`, `EventRegistration`, `EventTicket`, `EventCheckIn`,
+  `EventSpeaker`, `EventAttachment`, `EventResource`, `EventMinistry`,
+  `EventWaitlistEntry`, `EventActivity`, `EventMessage`
+- Analytics: attendance, registration, no-show rate, volunteer coverage,
+  capacity usage
+- Communication: Email / WhatsApp / SMS / Push / In-app queued with
+  `{ provider: null, queued: false }` provider metadata
+- Server actions: `src/application/events/actions.ts`
 
 ## Setup
 
