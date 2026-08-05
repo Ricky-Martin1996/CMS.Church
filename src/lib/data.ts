@@ -386,6 +386,7 @@ export const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" },
   { href: "/people", label: "People", icon: "Users" },
   { href: "/households", label: "Households", icon: "Home" },
+  { href: "/attendance", label: "Attendance", icon: "ClipboardCheck" },
   { href: "/events", label: "Events", icon: "CalendarDays" },
   { href: "/giving", label: "Giving", icon: "HeartHandshake" },
   { href: "/groups", label: "Groups", icon: "UsersRound" },

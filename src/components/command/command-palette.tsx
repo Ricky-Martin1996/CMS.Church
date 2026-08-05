@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import {
   CalendarDays,
+  ClipboardCheck,
   HeartHandshake,
   Home,
   LayoutDashboard,
@@ -22,6 +23,7 @@ const icons: Record<(typeof navItems)[number]["icon"], LucideIcon> = {
   LayoutDashboard,
   Users,
   Home,
+  ClipboardCheck,
   CalendarDays,
   HeartHandshake,
   UsersRound,

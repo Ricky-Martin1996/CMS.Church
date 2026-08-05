@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Loader2, QrCode } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ExternalLink, Loader2, QrCode } from "lucide-react";
 import { qrCheckInAction } from "@/application/people/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,24 @@ export default function CheckInPage() {
             Scan or paste a member QR token to record attendance.
           </p>
         </div>
+      </FadeIn>
+
+      <FadeIn delay={0.04}>
+        <Link
+          href="/attendance/check-in"
+          className="flex items-center justify-between gap-4 rounded-[1.75rem] border border-primary/20 bg-primary/10 p-4 transition-colors hover:bg-primary/15"
+        >
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-primary">Full check-in desk</p>
+            <p className="text-sm text-muted-foreground">
+              QR, search, households, visitors, and live session stats.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+            Open full Check-in desk
+            <ExternalLink className="h-4 w-4" />
+          </span>
+        </Link>
       </FadeIn>
 
       <FadeIn delay={0.08}>

@@ -886,6 +886,14 @@ function AttendanceTab({
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Link
+          href="/attendance/check-in"
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Open Attendance desk →
+        </Link>
+      </div>
       <section className="glass rounded-[1.75rem] p-6">
         <h2 className="font-display text-lg font-semibold">Trend</h2>
         <AttendanceTrendChart

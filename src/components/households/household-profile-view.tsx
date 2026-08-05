@@ -543,9 +543,17 @@ export function HouseholdProfileView({
 
           {tab === "attendance" && (
             <section className="glass rounded-[1.75rem] p-6">
-              <h2 className="font-display text-lg font-semibold">
-                Attendance trend
-              </h2>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="font-display text-lg font-semibold">
+                  Attendance trend
+                </h2>
+                <Link
+                  href="/attendance/check-in"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  Open Attendance desk →
+                </Link>
+              </div>
               <HouseholdAttendanceChart
                 data={profile.analytics.attendanceTrend}
                 className="mt-4 h-[280px]"

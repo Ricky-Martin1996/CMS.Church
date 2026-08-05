@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   CalendarDays,
   CalendarPlus,
+  ClipboardCheck,
   HandCoins,
   HeartHandshake,
   Home,
@@ -46,6 +47,7 @@ const activityIcons = {
 const quickIcons = {
   UserPlus,
   Home,
+  ClipboardCheck,
   CalendarPlus,
   HandCoins,
   UsersRound,
