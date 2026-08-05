@@ -52,6 +52,13 @@ Open [http://localhost:3000](http://localhost:3000).
 - Engagement / attendance / giving analytics rolled up from members
 - RBAC: `households:read|write|delete|merge|export|import`
 
+## Attendance & Check-in
+
+- `/attendance` dashboard · `/attendance/check-in` desk · `/attendance/sessions`
+- QR, member search, household batch, visitor registration, manual entry
+- Live session counters, duplicate prevention, visitor journey foundation
+- RBAC: `attendance:read|write|manage|export|sessions`
+
 ## Product UI
 
 - Glassmorphism UI with aurora animated backgrounds

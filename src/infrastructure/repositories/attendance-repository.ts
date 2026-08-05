@@ -11,7 +11,6 @@ import type {
   CheckInHouseholdResult,
   HouseholdCheckInPreview,
   HouseholdCheckInSearchResult,
-  ListSessionsQuery,
   MemberCheckInSearchResult,
   QrCheckInResult,
   SessionLiveStats,

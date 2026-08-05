@@ -8,6 +8,7 @@ src/
   application/            # Use-cases / services (ports + orchestration)
     people/               # Members CRM services + server actions
     households/           # Family & Household Management
+    attendance/           # Attendance & Check-in
   infrastructure/         # Prisma, repositories
   server/                 # Next.js server helpers (auth, rbac, tenant scope)
   app/                    # Presentation (App Router)
@@ -37,6 +38,8 @@ CRM permissions: `people:read|write|export|import`, note visibility,
 
 Household permissions: `households:read|write|delete|merge|export|import`.
 
+Attendance permissions: `attendance:read|write|manage|export|sessions`.
+
 ## Auth flow
 
 1. Clerk authenticates the user (session JWT).
@@ -51,7 +54,7 @@ Congregant records live in `Member` (not platform `Membership`).
 
 - List: `/people` — search, filters, table/grid/card/compact, infinite scroll, bulk, CSV
 - Profile: `/people/[id]` — hero, timeline, family, docs, notes, analytics, AI insights
-- QR check-in: `/people/check-in`
+- QR check-in: `/people/check-in` (legacy) → links to full Attendance desk
 - Server actions: `src/application/people/actions.ts`
 
 Every mutating CRM action writes a `MemberActivity` timeline event.
@@ -66,11 +69,22 @@ Head, Husband, Wife, Son, Daughter, Parent, Grandparent, Guardian, Relative, Oth
 - List: `/households` — search, filters, table/grid, infinite scroll, bulk, CSV
 - Profile: `/households/[id]` — hero, family tree, members, timeline, analytics
 - Operations: add/move members, assign relations, change head, merge, split
-- Quick actions: visit, email, WhatsApp, cell leader, home visit, prayer, QR
 - Server actions: `src/application/households/actions.ts`
-- Activities: `HouseholdActivity` on every mutation
 
 A member belongs to at most one household (`memberId` unique on membership).
+
+## Attendance & Check-in
+
+Service-day attendance platform with live sessions.
+
+- Dashboard: `/attendance` — live counts, visitors, trends, ministry comparison
+- Check-in desk: `/attendance/check-in` — QR, member search, household, manual, visitor
+- Sessions: `/attendance/sessions` — create, start (LIVE), close, export CSV
+- Models: `AttendanceSession`, `AttendanceRecord`, `Visitor`, `VisitorAttendance`
+- Methods: QR · Search · Household · Manual · Visitor · Volunteer
+- Duplicate prevention per session · activity timeline on check-in
+- Legacy CRM attendance (no sessionId) still powers member/household trend charts
+- Server actions: `src/application/attendance/actions.ts`
 
 ## Setup
 
