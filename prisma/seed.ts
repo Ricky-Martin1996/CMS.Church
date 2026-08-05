@@ -7,8 +7,10 @@ import {
   NoteVisibility,
   PrismaClient,
   Role,
+  VisitorPipelineStage,
 } from "@prisma/client";
 import { DEFAULT_TAGS } from "../src/domain/enums/member";
+import { DEFAULT_VISITOR_STAGE_CONFIGS } from "../src/domain/enums/visitor";
 import { subDays, subMonths, startOfDay } from "date-fns";
 
 const prisma = new PrismaClient();
@@ -1026,6 +1028,252 @@ async function main() {
         isSecondVisit: true,
         checkedInAt: new Date(),
       },
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Visitor Journey & Follow-up seed (stage configs, journeys, tasks, comms)
+  // ---------------------------------------------------------------------------
+
+  for (const config of DEFAULT_VISITOR_STAGE_CONFIGS) {
+    await prisma.visitorStageConfig.upsert({
+      where: {
+        organizationId_stageKey: {
+          organizationId: grace.id,
+          stageKey: config.stageKey,
+        },
+      },
+      create: {
+        organizationId: grace.id,
+        stageKey: config.stageKey,
+        label: config.label,
+        sortOrder: config.sortOrder,
+        autoTaskTypes: config.autoTaskTypes,
+        slaHours: config.slaHours,
+      },
+      update: {},
+    });
+  }
+
+  async function seedVisitorJourney(
+    visitor: { id: string; firstName: string; lastName: string },
+    stage: typeof DEFAULT_VISITOR_STAGE_CONFIGS[number]["stageKey"] | VisitorPipelineStage,
+    options?: {
+      assignedLeaderId?: string;
+      tasks?: Array<{
+        type: "CALL" | "WHATSAPP" | "EMAIL_WELCOME" | "INVITE_SERVICE" | "INVITE_CELL" | "HOME_VISIT" | "CUSTOM";
+        title: string;
+        status?: "OPEN" | "DONE";
+        dueAt?: Date;
+      }>;
+      communications?: Array<{
+        channel: "PHONE" | "EMAIL" | "WHATSAPP" | "SMS" | "IN_PERSON" | "NOTE";
+        body: string;
+        occurredAt?: Date;
+      }>;
+    }
+  ) {
+    const existingJourney = await prisma.visitorJourney.findUnique({
+      where: { visitorId: visitor.id },
+    });
+
+    if (!existingJourney) {
+      await prisma.visitorJourney.create({
+        data: {
+          organizationId: grace.id,
+          visitorId: visitor.id,
+          currentStage: stage,
+          startedAt: subDays(new Date(), 14),
+        },
+      });
+
+      await prisma.visitorStatusHistory.create({
+        data: {
+          organizationId: grace.id,
+          visitorId: visitor.id,
+          fromStatus: null,
+          toStatus: "FIRST_VISIT",
+          note: "Journey started",
+          occurredAt: subDays(new Date(), 14),
+        },
+      });
+
+      await prisma.visitorActivity.create({
+        data: {
+          organizationId: grace.id,
+          visitorId: visitor.id,
+          type: "CREATED",
+          title: "Visitor registered",
+          occurredAt: subDays(new Date(), 14),
+        },
+      });
+    }
+
+    await prisma.visitor.update({
+      where: { id: visitor.id },
+      data: {
+        status: stage,
+        stageEnteredAt: subDays(new Date(), 3),
+        ...(options?.assignedLeaderId
+          ? { assignedLeaderId: options.assignedLeaderId }
+          : {}),
+      },
+    });
+
+    await prisma.visitorJourney.updateMany({
+      where: { visitorId: visitor.id },
+      data: { currentStage: stage },
+    });
+
+    if (options?.tasks) {
+      for (const task of options.tasks) {
+        const automationKey = `${stage}:${task.type}:${visitor.id}:seed`;
+        const exists = await prisma.followUpTask.findFirst({
+          where: { organizationId: grace.id, automationKey },
+        });
+        if (exists) continue;
+
+        await prisma.followUpTask.create({
+          data: {
+            organizationId: grace.id,
+            visitorId: visitor.id,
+            type: task.type,
+            title: task.title,
+            status: task.status ?? "OPEN",
+            dueAt: task.dueAt ?? subDays(new Date(), 1),
+            automationKey,
+            ...(task.status === "DONE" ? { completedAt: new Date() } : {}),
+          },
+        });
+      }
+    }
+
+    if (options?.communications) {
+      for (const comm of options.communications) {
+        await prisma.communicationLog.create({
+          data: {
+            organizationId: grace.id,
+            visitorId: visitor.id,
+            channel: comm.channel,
+            direction: "OUTBOUND",
+            body: comm.body,
+            occurredAt: comm.occurredAt ?? subDays(new Date(), 2),
+            metadata: { provider: null, queued: false },
+          },
+        });
+      }
+    }
+  }
+
+  const jordanVisitor = await prisma.visitor.findFirst({
+    where: { organizationId: grace.id, email: "jordan.reed@email.com" },
+  });
+  const taylorVisitor = await prisma.visitor.findFirst({
+    where: { organizationId: grace.id, email: "taylor.b@email.com" },
+  });
+
+  if (jordanVisitor) {
+    await seedVisitorJourney(jordanVisitor, "WELCOME_SENT", {
+      assignedLeaderId: aisha.id,
+      tasks: [
+        { type: "EMAIL_WELCOME", title: "Email welcome", status: "DONE" },
+        { type: "CALL", title: "Call visitor", status: "OPEN", dueAt: subDays(new Date(), 1) },
+      ],
+      communications: [
+        {
+          channel: "EMAIL",
+          body: "Welcome to Grace Community! We're glad you visited.",
+          occurredAt: subDays(new Date(), 5),
+        },
+      ],
+    });
+  }
+
+  if (taylorVisitor) {
+    await seedVisitorJourney(taylorVisitor, "SECOND_VISIT", {
+      assignedLeaderId: marcus.id,
+      tasks: [
+        { type: "INVITE_CELL", title: "Invite to cell group", status: "OPEN" },
+      ],
+      communications: [
+        {
+          channel: "WHATSAPP",
+          body: "Great to see you again! Would you like to join a cell group?",
+          occurredAt: subDays(new Date(), 3),
+        },
+      ],
+    });
+  }
+
+  const extraVisitors = [
+    {
+      firstName: "Mia",
+      lastName: "Chen",
+      email: "mia.chen@email.com",
+      phone: "+1-555-0203",
+      stage: "CONTACTED" as const,
+      leaderId: aisha.id,
+    },
+    {
+      firstName: "Oliver",
+      lastName: "Grant",
+      email: "oliver.grant@email.com",
+      phone: "+1-555-0204",
+      stage: "CELL_GROUP_INVITED" as const,
+      leaderId: marcus.id,
+    },
+    {
+      firstName: "Sofia",
+      lastName: "Martinez",
+      email: "sofia.m@email.com",
+      phone: "+1-555-0205",
+      stage: "FOUNDATION_COURSE" as const,
+      leaderId: daniel.id,
+    },
+    {
+      firstName: "Ethan",
+      lastName: "Walsh",
+      email: "ethan.walsh@email.com",
+      phone: "+1-555-0206",
+      stage: "MEMBERSHIP_INTERVIEW" as const,
+      leaderId: elena.id,
+    },
+  ];
+
+  for (const v of extraVisitors) {
+    const existing = await prisma.visitor.findFirst({
+      where: { organizationId: grace.id, email: v.email },
+    });
+    const visitor =
+      existing ??
+      (await prisma.visitor.create({
+        data: {
+          organizationId: grace.id,
+          firstName: v.firstName,
+          lastName: v.lastName,
+          email: v.email,
+          phone: v.phone,
+          invitedByMemberId: v.leaderId,
+        },
+      }));
+
+    await seedVisitorJourney(visitor, v.stage, {
+      assignedLeaderId: v.leaderId,
+      tasks: [
+        {
+          type: "CALL",
+          title: "Follow-up call",
+          status: "OPEN",
+          dueAt: subDays(new Date(), 2),
+        },
+      ],
+      communications: [
+        {
+          channel: "PHONE",
+          body: `Called ${v.firstName} to check in on their journey.`,
+          occurredAt: subDays(new Date(), 4),
+        },
+      ],
     });
   }
 }

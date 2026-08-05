@@ -21,6 +21,10 @@ import {
   AttendanceSessionStatus,
   AttendanceSessionType,
 } from "@/domain/enums/member";
+import type {
+  CommunicationChannel,
+  VisitorPipelineStage,
+} from "@/domain/enums/visitor";
 import { prisma } from "@/infrastructure/db/prisma";
 import { AppError, conflict, notFound } from "@/server/errors";
 import type {
@@ -28,7 +32,9 @@ import type {
   AttendanceMethod as PrismaAttendanceMethod,
   AttendanceSessionStatus as PrismaAttendanceSessionStatus,
   AttendanceSessionType as PrismaAttendanceSessionType,
+  CommunicationChannel as PrismaCommunicationChannel,
   Prisma,
+  VisitorPipelineStage as PrismaVisitorPipelineStage,
 } from "@prisma/client";
 import {
   endOfDay,
@@ -134,6 +140,12 @@ function mapVisitor(row: {
   prayerRequest: string | null;
   notes: string | null;
   convertedMemberId: string | null;
+  status: PrismaVisitorPipelineStage;
+  assignedLeaderId: string | null;
+  assignedUserId: string | null;
+  stageEnteredAt: Date;
+  source: string | null;
+  preferredChannel: PrismaCommunicationChannel | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -151,6 +163,12 @@ function mapVisitor(row: {
     prayerRequest: row.prayerRequest,
     notes: row.notes,
     convertedMemberId: row.convertedMemberId,
+    status: row.status as VisitorPipelineStage,
+    assignedLeaderId: row.assignedLeaderId,
+    assignedUserId: row.assignedUserId,
+    stageEnteredAt: row.stageEnteredAt,
+    source: row.source,
+    preferredChannel: row.preferredChannel as CommunicationChannel | null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

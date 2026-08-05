@@ -295,6 +295,19 @@ export async function registerVisitorCheckIn(input: {
     notes: input.notes,
   });
 
+  try {
+    const { bootstrapVisitorJourney } = await import(
+      "@/application/visitors/visitor-journey-service"
+    );
+    await bootstrapVisitorJourney({
+      organizationId: input.organizationId,
+      visitorId: visitor.id,
+      actorUserId: input.actorUserId,
+    });
+  } catch (error) {
+    console.error("[visitor-journey] bootstrap failed", error);
+  }
+
   const attendance = await visitorRepository.checkInVisitor({
     organizationId: input.organizationId,
     sessionId: input.sessionId,

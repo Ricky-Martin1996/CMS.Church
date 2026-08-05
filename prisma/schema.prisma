@@ -85,6 +85,12 @@ model Organization {
   attendanceSessions AttendanceSession[]
   visitors         Visitor[]
   visitorAttendances VisitorAttendance[]
+  visitorJourneys  VisitorJourney[]
+  visitorStageConfigs VisitorStageConfig[]
+  followUpTasks    FollowUpTask[]
+  communicationLogs CommunicationLog[]
+  visitorStatusHistory VisitorStatusHistory[]
+  visitorActivities VisitorActivity[]
 
   @@index([slug])
   @@map("organizations")
@@ -639,9 +645,73 @@ model AttendanceRecord {
   @@map("attendance_records")
 }
 
-/// First-time / returning visitor — foundation for Visitor Journey.
+enum VisitorPipelineStage {
+  FIRST_VISIT
+  WELCOME_SENT
+  ASSIGNED_LEADER
+  CONTACTED
+  SECOND_VISIT
+  CELL_GROUP_INVITED
+  FOUNDATION_COURSE
+  MEMBERSHIP_INTERVIEW
+  MEMBER
+}
+
+enum FollowUpTaskType {
+  CALL
+  WHATSAPP
+  EMAIL_WELCOME
+  INVITE_SERVICE
+  INVITE_CELL
+  HOME_VISIT
+  CUSTOM
+}
+
+enum FollowUpTaskStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+  SNOOZED
+}
+
+enum FollowUpPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum CommunicationChannel {
+  PHONE
+  EMAIL
+  WHATSAPP
+  SMS
+  IN_PERSON
+  NOTE
+}
+
+enum CommunicationDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum VisitorActivityType {
+  CREATED
+  STAGE_CHANGED
+  LEADER_ASSIGNED
+  TASK_CREATED
+  TASK_COMPLETED
+  COMMUNICATION
+  ATTENDED
+  NOTE_ADDED
+  CONVERTED
+  AUTOMATION
+}
+
+/// First-time / returning visitor profile — Attendance check-in + Journey pipeline.
 model Visitor {
-  id                 String   @id @default(cuid())
+  id                 String               @id @default(cuid())
   organizationId     String
   firstName          String
   lastName           String
@@ -650,19 +720,33 @@ model Visitor {
   invitedByMemberId  String?
   householdId        String?
   familyName         String?
-  childrenCount      Int      @default(0)
+  childrenCount      Int                  @default(0)
   prayerRequest      String?
   notes              String?
   convertedMemberId  String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  status             VisitorPipelineStage @default(FIRST_VISIT)
+  assignedLeaderId   String?
+  assignedUserId     String?
+  stageEnteredAt     DateTime             @default(now())
+  source             String?
+  preferredChannel   CommunicationChannel?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 
-  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  attendances  VisitorAttendance[]
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  attendances    VisitorAttendance[]
+  journey        VisitorJourney?
+  statusHistory  VisitorStatusHistory[]
+  tasks          FollowUpTask[]
+  communications CommunicationLog[]
+  activities     VisitorActivity[]
 
   @@index([organizationId])
+  @@index([organizationId, status])
   @@index([organizationId, email])
   @@index([organizationId, phone])
+  @@index([assignedLeaderId])
+  @@index([assignedUserId])
   @@map("visitors")
 }
 
@@ -679,14 +763,142 @@ model VisitorAttendance {
   notes               String?
   createdAt           DateTime @default(now())
 
-  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  visitor      Visitor          @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  visitor      Visitor           @relation(fields: [visitorId], references: [id], onDelete: Cascade)
   session      AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, visitorId])
   @@index([organizationId, sessionId])
   @@index([visitorId])
   @@map("visitor_attendances")
+}
+
+/// Active journey instance for a visitor (one per visitor).
+model VisitorJourney {
+  id                 String               @id @default(cuid())
+  organizationId     String
+  visitorId          String               @unique
+  currentStage       VisitorPipelineStage @default(FIRST_VISIT)
+  startedAt          DateTime             @default(now())
+  completedAt        DateTime?
+  convertedAt        DateTime?
+  conversionMemberId String?
+  metadata           Json?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  visitor      Visitor      @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, currentStage])
+  @@map("visitor_journeys")
+}
+
+/// Org-configurable pipeline stages (automation-ready).
+model VisitorStageConfig {
+  id             String               @id @default(cuid())
+  organizationId String
+  stageKey       VisitorPipelineStage
+  label          String
+  sortOrder      Int
+  isActive       Boolean              @default(true)
+  /// Auto task types to spawn when entering this stage (JSON string array of FollowUpTaskType)
+  autoTaskTypes  Json?
+  slaHours       Int?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, stageKey])
+  @@index([organizationId, sortOrder])
+  @@map("visitor_stage_configs")
+}
+
+model FollowUpTask {
+  id             String            @id @default(cuid())
+  organizationId String
+  visitorId      String
+  type           FollowUpTaskType  @default(CUSTOM)
+  title          String
+  description    String?
+  ownerUserId    String?
+  dueAt          DateTime?
+  priority       FollowUpPriority  @default(MEDIUM)
+  status         FollowUpTaskStatus @default(OPEN)
+  notes          String?
+  completedAt    DateTime?
+  /// Stable key for automation idempotency (e.g. "welcome_email:visitorId")
+  automationKey  String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  visitor      Visitor      @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, automationKey])
+  @@index([organizationId, status, dueAt])
+  @@index([visitorId])
+  @@index([ownerUserId])
+  @@map("follow_up_tasks")
+}
+
+model CommunicationLog {
+  id             String                 @id @default(cuid())
+  organizationId String
+  visitorId      String
+  channel        CommunicationChannel
+  direction      CommunicationDirection @default(OUTBOUND)
+  subject        String?
+  body           String
+  actorUserId    String?
+  occurredAt     DateTime               @default(now())
+  /// Future provider payload (Twilio/SendGrid/etc.)
+  metadata       Json?
+  createdAt      DateTime               @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  visitor      Visitor      @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, visitorId, occurredAt])
+  @@index([visitorId])
+  @@map("communication_logs")
+}
+
+model VisitorStatusHistory {
+  id              String                @id @default(cuid())
+  organizationId  String
+  visitorId       String
+  fromStatus      VisitorPipelineStage?
+  toStatus        VisitorPipelineStage
+  changedByUserId String?
+  note            String?
+  occurredAt      DateTime              @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  visitor      Visitor      @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, visitorId, occurredAt])
+  @@map("visitor_status_history")
+}
+
+model VisitorActivity {
+  id             String              @id @default(cuid())
+  organizationId String
+  visitorId      String
+  type           VisitorActivityType
+  title          String
+  description    String?
+  actorUserId    String?
+  metadata       Json?
+  occurredAt     DateTime            @default(now())
+  createdAt      DateTime            @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  visitor      Visitor      @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, visitorId, occurredAt])
+  @@map("visitor_activities")
 }
 
 model GivingRecord {

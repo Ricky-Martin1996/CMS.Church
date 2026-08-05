@@ -4,6 +4,10 @@ import type {
   AttendanceSessionStatus,
   AttendanceSessionType,
 } from "@/domain/enums/member";
+import type {
+  CommunicationChannel,
+  VisitorPipelineStage,
+} from "@/domain/enums/visitor";
 
 export type AttendanceSessionEntity = {
   id: string;
@@ -59,6 +63,12 @@ export type VisitorEntity = {
   prayerRequest: string | null;
   notes: string | null;
   convertedMemberId: string | null;
+  status: VisitorPipelineStage;
+  assignedLeaderId: string | null;
+  assignedUserId: string | null;
+  stageEnteredAt: Date;
+  source: string | null;
+  preferredChannel: CommunicationChannel | null;
   createdAt: Date;
   updatedAt: Date;
 };
