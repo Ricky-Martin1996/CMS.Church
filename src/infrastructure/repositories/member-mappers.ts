@@ -28,9 +28,9 @@ import type {
 } from "@/domain/enums/member";
 import type {
   AttendanceRecord,
-  FamilyMember,
   GivingRecord,
   Household,
+  HouseholdMembership,
   Member,
   MemberActivity,
   MemberDocument,
@@ -46,7 +46,7 @@ type MemberWithTags = Member & {
   tags?: Array<MemberTag & { tag: Tag }>;
 };
 
-type FamilyMemberWithMember = FamilyMember & {
+type HouseholdMembershipWithMember = HouseholdMembership & {
   member?: Pick<
     Member,
     "id" | "firstName" | "lastName" | "avatarUrl" | "email" | "phone"
@@ -200,7 +200,7 @@ export function mapHousehold(household: Household): HouseholdEntity {
   return {
     id: household.id,
     organizationId: household.organizationId,
-    name: household.name,
+    name: household.familyName,
     addressLine1: household.addressLine1,
     addressLine2: household.addressLine2,
     city: household.city,
@@ -211,22 +211,22 @@ export function mapHousehold(household: Household): HouseholdEntity {
 }
 
 export function mapFamilyMember(
-  familyMember: FamilyMemberWithMember
+  membership: HouseholdMembershipWithMember
 ): FamilyMemberEntity {
   return {
-    id: familyMember.id,
-    householdId: familyMember.householdId,
-    memberId: familyMember.memberId,
-    relation: familyMember.relation as FamilyRelation,
-    isPrimary: familyMember.isPrimary,
-    member: familyMember.member
+    id: membership.id,
+    householdId: membership.householdId,
+    memberId: membership.memberId,
+    relation: membership.relation as FamilyRelation,
+    isPrimary: membership.isPrimary,
+    member: membership.member
       ? {
-          id: familyMember.member.id,
-          firstName: familyMember.member.firstName,
-          lastName: familyMember.member.lastName,
-          avatarUrl: familyMember.member.avatarUrl,
-          email: familyMember.member.email,
-          phone: familyMember.member.phone,
+          id: membership.member.id,
+          firstName: membership.member.firstName,
+          lastName: membership.member.lastName,
+          avatarUrl: membership.member.avatarUrl,
+          email: membership.member.email,
+          phone: membership.member.phone,
         }
       : undefined,
   };

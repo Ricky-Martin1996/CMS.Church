@@ -47,6 +47,8 @@ model User {
   authoredActivity MemberActivity[]   @relation("ActivityActor")
   savedFilters     SavedMemberFilter[]
   listPreferences  MemberListPreference[]
+  savedHouseholdFilters SavedHouseholdFilter[]
+  householdListPreferences HouseholdListPreference[]
 
   @@index([email])
   @@map("users")
@@ -75,6 +77,11 @@ model Organization {
   volunteerRoles   VolunteerAssignment[]
   savedFilters     SavedMemberFilter[]
   listPreferences  MemberListPreference[]
+  householdActivities HouseholdActivity[]
+  householdNotes   HouseholdNote[]
+  householdDocuments HouseholdDocument[]
+  savedHouseholdFilters SavedHouseholdFilter[]
+  householdListPreferences HouseholdListPreference[]
 
   @@index([slug])
   @@map("organizations")
@@ -176,11 +183,46 @@ enum ActivityType {
 
 enum FamilyRelation {
   HEAD
+  HUSBAND
+  WIFE
   SPOUSE
+  SON
+  DAUGHTER
   CHILD
   PARENT
+  GRANDPARENT
+  GUARDIAN
   SIBLING
+  RELATIVE
   OTHER
+}
+
+enum HouseholdStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum HouseholdActivityType {
+  CREATED
+  EDITED
+  MEMBER_ADDED
+  MEMBER_REMOVED
+  MEMBER_MOVED
+  RELATION_CHANGED
+  HEAD_CHANGED
+  MERGED
+  SPLIT
+  VISITED
+  EMAIL_SENT
+  WHATSAPP_SENT
+  PRAYER_REQUESTED
+  CELL_LEADER_ASSIGNED
+  HOME_VISIT_SCHEDULED
+  NOTE_ADDED
+  DOCUMENT_UPLOADED
+  IMPORTED
+  STATUS_CHANGED
 }
 
 enum AttendanceMethod {
@@ -249,7 +291,7 @@ model Member {
   ledMembers     Member[]   @relation("MemberLeader")
 
   tags          MemberTag[]
-  householdLinks FamilyMember[]
+  householdLinks HouseholdMembership[]
   notes         MemberNote[]
   documents     MemberDocument[]
   activities    MemberActivity[]
@@ -299,40 +341,158 @@ model MemberTag {
   @@map("member_tags")
 }
 
+/// Central family unit for pastoral care, attendance, giving, and relationships.
 model Household {
-  id             String   @id @default(cuid())
-  organizationId String
-  name           String
-  addressLine1   String?
-  addressLine2   String?
-  city           String?
-  state          String?
-  postalCode     String?
-  country        String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                 String          @id @default(cuid())
+  organizationId     String
+  familyName         String
+  householdCode      String
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
+  state              String?
+  postalCode         String?
+  country            String?
+  geoLatitude        Float?
+  geoLongitude       Float?
+  preferredLanguage  String?
+  anniversaryDate    DateTime?
+  emergencyContact   String?
+  emergencyPhone     String?
+  photoUrl           String?
+  notes              String?
+  status             HouseholdStatus @default(ACTIVE)
+  cellGroup          String?
+  assignedCellLeaderId String?
+  engagementScore    Int             @default(0)
+  qrToken            String          @unique @default(cuid())
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  deletedAt          DateTime?
 
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  members      FamilyMember[]
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships  HouseholdMembership[]
+  activities   HouseholdActivity[]
+  householdNotes HouseholdNote[]
+  documents    HouseholdDocument[]
 
+  @@unique([organizationId, householdCode])
   @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, familyName])
+  @@index([organizationId, deletedAt])
+  @@index([qrToken])
   @@map("households")
 }
 
-model FamilyMember {
+/// Links a Member to a Household with a family relationship (HouseholdMembership).
+model HouseholdMembership {
   id          String         @id @default(cuid())
   householdId String
   memberId    String
   relation    FamilyRelation @default(OTHER)
   isPrimary   Boolean        @default(false)
   createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([householdId, memberId])
+  @@unique([memberId])
+  @@index([householdId])
   @@index([memberId])
   @@map("family_members")
+}
+
+model HouseholdActivity {
+  id             String                @id @default(cuid())
+  organizationId String
+  householdId    String
+  type           HouseholdActivityType
+  title          String
+  description    String?
+  metadata       Json?
+  actorUserId    String?
+  occurredAt     DateTime              @default(now())
+  createdAt      DateTime              @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  household    Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, householdId, occurredAt])
+  @@map("household_activities")
+}
+
+model HouseholdNote {
+  id             String         @id @default(cuid())
+  organizationId String
+  householdId    String
+  authorUserId   String
+  visibility     NoteVisibility @default(PRIVATE)
+  body           String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  household    Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, householdId])
+  @@map("household_notes")
+}
+
+model HouseholdDocument {
+  id             String       @id @default(cuid())
+  organizationId String
+  householdId    String
+  type           DocumentType @default(OTHER)
+  name           String
+  mimeType       String
+  sizeBytes      Int
+  storageKey     String
+  url            String?
+  uploadedById   String?
+  createdAt      DateTime     @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  household    Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, householdId])
+  @@map("household_documents")
+}
+
+model SavedHouseholdFilter {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  name           String
+  definition     Json
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userId])
+  @@map("saved_household_filters")
+}
+
+model HouseholdListPreference {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  columns        Json
+  density        String   @default("comfortable")
+  viewMode       String   @default("table")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("household_list_preferences")
 }
 
 model MemberNote {

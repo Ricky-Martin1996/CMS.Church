@@ -136,6 +136,14 @@ export {
   tagRepository,
   volunteerRepository,
 } from "@/infrastructure/repositories/crm-repositories";
+export { householdRepository } from "@/infrastructure/repositories/household-repository";
+export {
+  householdActivityRepository,
+  householdDocumentRepository,
+  householdListPreferenceRepository,
+  householdNoteRepository,
+  householdSavedFilterRepository,
+} from "@/infrastructure/repositories/household-supporting";
 
 export const membershipRepository: MembershipRepository = {
   async findByUserAndOrg(userId, organizationId) {

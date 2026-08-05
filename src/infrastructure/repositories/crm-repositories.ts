@@ -36,6 +36,7 @@ import type {
   Prisma,
 } from "@prisma/client";
 import { format, startOfMonth, subMonths } from "date-fns";
+import { randomUUID } from "crypto";
 
 export const activityRepository: ActivityRepository = {
   async create(input) {
@@ -174,17 +175,25 @@ export const documentRepository: DocumentRepository = {
   },
 };
 
+function generateHouseholdCode(id?: string): string {
+  const slice = (id ?? randomUUID().replace(/-/g, ""))
+    .replace(/-/g, "")
+    .slice(0, 8)
+    .toUpperCase();
+  return `HH-${slice}`;
+}
+
 export const familyRepository: FamilyRepository = {
   async getForMember(organizationId, memberId) {
-    const link = await prisma.familyMember.findFirst({
+    const link = await prisma.householdMembership.findFirst({
       where: {
         memberId,
-        household: { organizationId },
+        household: { organizationId, deletedAt: null },
       },
       include: {
         household: {
           include: {
-            members: {
+            memberships: {
               include: {
                 member: {
                   select: {
@@ -209,15 +218,15 @@ export const familyRepository: FamilyRepository = {
 
     return {
       household: mapHousehold(link.household),
-      members: link.household.members.map(mapFamilyMember),
+      members: link.household.memberships.map(mapFamilyMember),
     };
   },
 
   async upsertHousehold(input) {
-    const existingLink = await prisma.familyMember.findFirst({
+    const existingLink = await prisma.householdMembership.findFirst({
       where: {
         memberId: input.memberId,
-        household: { organizationId: input.organizationId },
+        household: { organizationId: input.organizationId, deletedAt: null },
       },
       include: { household: true },
     });
@@ -228,7 +237,7 @@ export const familyRepository: FamilyRepository = {
       await prisma.household.update({
         where: { id: existingLink.householdId },
         data: {
-          name: input.name,
+          familyName: input.name,
           addressLine1: input.addressLine1 ?? null,
           city: input.city ?? null,
           state: input.state ?? null,
@@ -237,7 +246,7 @@ export const familyRepository: FamilyRepository = {
         },
       });
 
-      await prisma.familyMember.update({
+      await prisma.householdMembership.update({
         where: { id: existingLink.id },
         data: {
           relation: input.relation as PrismaFamilyRelation,
@@ -250,7 +259,8 @@ export const familyRepository: FamilyRepository = {
       const household = await prisma.household.create({
         data: {
           organizationId: input.organizationId,
-          name: input.name,
+          familyName: input.name,
+          householdCode: generateHouseholdCode(),
           addressLine1: input.addressLine1 ?? null,
           city: input.city ?? null,
           state: input.state ?? null,
@@ -259,7 +269,7 @@ export const familyRepository: FamilyRepository = {
         },
       });
 
-      await prisma.familyMember.create({
+      await prisma.householdMembership.create({
         data: {
           householdId: household.id,
           memberId: input.memberId,
@@ -290,9 +300,9 @@ export const familyRepository: FamilyRepository = {
     }
 
     const household = await prisma.household.findFirstOrThrow({
-      where: { id: householdId, organizationId: input.organizationId },
+      where: { id: householdId, organizationId: input.organizationId, deletedAt: null },
       include: {
-        members: {
+        memberships: {
           include: {
             member: {
               select: {
@@ -311,12 +321,12 @@ export const familyRepository: FamilyRepository = {
 
     return {
       household: mapHousehold(household),
-      members: household.members.map(mapFamilyMember),
+      members: household.memberships.map(mapFamilyMember),
     };
   },
 
   async linkMember(input) {
-    await prisma.familyMember.upsert({
+    await prisma.householdMembership.upsert({
       where: {
         householdId_memberId: {
           householdId: input.householdId,

@@ -26,9 +26,13 @@ export {
   AttendanceMethod,
   PrayerStatus,
   VolunteerStatus,
+  HouseholdStatus,
+  HouseholdActivityType,
   MEMBER_STATUS_LABELS,
   ACTIVITY_TYPE_LABELS,
   FAMILY_RELATION_LABELS,
+  HOUSEHOLD_STATUS_LABELS,
+  HOUSEHOLD_ACTIVITY_LABELS,
   NOTE_VISIBILITY_LABELS,
   DEFAULT_TAGS,
 } from "@/domain/enums/member";
@@ -39,7 +43,6 @@ export type {
   MemberActivityEntity,
   MemberNoteEntity,
   MemberDocumentEntity,
-  HouseholdEntity,
   FamilyMemberEntity,
   AttendanceEntity,
   GivingEntity,
@@ -52,3 +55,16 @@ export type {
   MemberListColumn,
 } from "@/domain/entities/member";
 export { DEFAULT_MEMBER_COLUMNS } from "@/domain/entities/member";
+export type {
+  HouseholdEntity,
+  HouseholdListItem,
+  HouseholdMembershipEntity,
+  HouseholdActivityEntity,
+  HouseholdNoteEntity,
+  HouseholdDocumentEntity,
+  HouseholdAnalytics,
+  HouseholdProfile,
+  HouseholdFilterDefinition,
+  HouseholdListColumn,
+} from "@/domain/entities/household";
+export { DEFAULT_HOUSEHOLD_COLUMNS } from "@/domain/entities/household";

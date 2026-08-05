@@ -70,11 +70,46 @@ export enum ActivityType {
 
 export enum FamilyRelation {
   HEAD = "HEAD",
+  HUSBAND = "HUSBAND",
+  WIFE = "WIFE",
   SPOUSE = "SPOUSE",
+  SON = "SON",
+  DAUGHTER = "DAUGHTER",
   CHILD = "CHILD",
   PARENT = "PARENT",
+  GRANDPARENT = "GRANDPARENT",
+  GUARDIAN = "GUARDIAN",
   SIBLING = "SIBLING",
+  RELATIVE = "RELATIVE",
   OTHER = "OTHER",
+}
+
+export enum HouseholdStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  ARCHIVED = "ARCHIVED",
+}
+
+export enum HouseholdActivityType {
+  CREATED = "CREATED",
+  EDITED = "EDITED",
+  MEMBER_ADDED = "MEMBER_ADDED",
+  MEMBER_REMOVED = "MEMBER_REMOVED",
+  MEMBER_MOVED = "MEMBER_MOVED",
+  RELATION_CHANGED = "RELATION_CHANGED",
+  HEAD_CHANGED = "HEAD_CHANGED",
+  MERGED = "MERGED",
+  SPLIT = "SPLIT",
+  VISITED = "VISITED",
+  EMAIL_SENT = "EMAIL_SENT",
+  WHATSAPP_SENT = "WHATSAPP_SENT",
+  PRAYER_REQUESTED = "PRAYER_REQUESTED",
+  CELL_LEADER_ASSIGNED = "CELL_LEADER_ASSIGNED",
+  HOME_VISIT_SCHEDULED = "HOME_VISIT_SCHEDULED",
+  NOTE_ADDED = "NOTE_ADDED",
+  DOCUMENT_UPLOADED = "DOCUMENT_UPLOADED",
+  IMPORTED = "IMPORTED",
+  STATUS_CHANGED = "STATUS_CHANGED",
 }
 
 export enum AttendanceMethod {
@@ -128,12 +163,47 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
 };
 
 export const FAMILY_RELATION_LABELS: Record<FamilyRelation, string> = {
-  [FamilyRelation.HEAD]: "Family Head",
+  [FamilyRelation.HEAD]: "Head of Household",
+  [FamilyRelation.HUSBAND]: "Husband",
+  [FamilyRelation.WIFE]: "Wife",
   [FamilyRelation.SPOUSE]: "Spouse",
+  [FamilyRelation.SON]: "Son",
+  [FamilyRelation.DAUGHTER]: "Daughter",
   [FamilyRelation.CHILD]: "Child",
   [FamilyRelation.PARENT]: "Parent",
+  [FamilyRelation.GRANDPARENT]: "Grandparent",
+  [FamilyRelation.GUARDIAN]: "Guardian",
   [FamilyRelation.SIBLING]: "Sibling",
+  [FamilyRelation.RELATIVE]: "Relative",
   [FamilyRelation.OTHER]: "Other",
+};
+
+export const HOUSEHOLD_STATUS_LABELS: Record<HouseholdStatus, string> = {
+  [HouseholdStatus.ACTIVE]: "Active",
+  [HouseholdStatus.INACTIVE]: "Inactive",
+  [HouseholdStatus.ARCHIVED]: "Archived",
+};
+
+export const HOUSEHOLD_ACTIVITY_LABELS: Record<HouseholdActivityType, string> = {
+  [HouseholdActivityType.CREATED]: "Created",
+  [HouseholdActivityType.EDITED]: "Edited",
+  [HouseholdActivityType.MEMBER_ADDED]: "Member Added",
+  [HouseholdActivityType.MEMBER_REMOVED]: "Member Removed",
+  [HouseholdActivityType.MEMBER_MOVED]: "Member Moved",
+  [HouseholdActivityType.RELATION_CHANGED]: "Relation Changed",
+  [HouseholdActivityType.HEAD_CHANGED]: "Head Changed",
+  [HouseholdActivityType.MERGED]: "Merged",
+  [HouseholdActivityType.SPLIT]: "Split",
+  [HouseholdActivityType.VISITED]: "Visited",
+  [HouseholdActivityType.EMAIL_SENT]: "Email Sent",
+  [HouseholdActivityType.WHATSAPP_SENT]: "WhatsApp Sent",
+  [HouseholdActivityType.PRAYER_REQUESTED]: "Prayer Requested",
+  [HouseholdActivityType.CELL_LEADER_ASSIGNED]: "Cell Leader Assigned",
+  [HouseholdActivityType.HOME_VISIT_SCHEDULED]: "Home Visit Scheduled",
+  [HouseholdActivityType.NOTE_ADDED]: "Note Added",
+  [HouseholdActivityType.DOCUMENT_UPLOADED]: "Document Uploaded",
+  [HouseholdActivityType.IMPORTED]: "Imported",
+  [HouseholdActivityType.STATUS_CHANGED]: "Status Changed",
 };
 
 export const NOTE_VISIBILITY_LABELS: Record<NoteVisibility, string> = {

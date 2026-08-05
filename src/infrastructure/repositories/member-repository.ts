@@ -318,7 +318,7 @@ export const memberRepository: MemberRepository = {
           include: {
             household: {
               include: {
-                members: {
+                memberships: {
                   include: {
                     member: {
                       select: {
@@ -368,7 +368,7 @@ export const memberRepository: MemberRepository = {
       family: {
         household: household ? mapHousehold(household) : null,
         members: household
-          ? household.members.map(mapFamilyMember)
+          ? household.memberships.map(mapFamilyMember)
           : [],
       },
       attendance: member.attendance.map(mapAttendance),

@@ -358,13 +358,14 @@ async function main() {
 
   // Family household
   let household = await prisma.household.findFirst({
-    where: { organizationId: grace.id, name: "Chen Household" },
+    where: { organizationId: grace.id, familyName: "Chen Household", deletedAt: null },
   });
   if (!household) {
     household = await prisma.household.create({
       data: {
         organizationId: grace.id,
-        name: "Chen Household",
+        familyName: "Chen Household",
+        householdCode: "HH-CHENSEED1",
         addressLine1: "100 Faith Avenue",
         city: "Springfield",
         state: "IL",
@@ -374,7 +375,7 @@ async function main() {
     });
   }
 
-  await prisma.familyMember.upsert({
+  await prisma.householdMembership.upsert({
     where: {
       householdId_memberId: { householdId: household.id, memberId: sarah.id },
     },
