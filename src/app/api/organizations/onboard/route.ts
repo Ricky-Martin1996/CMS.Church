@@ -4,7 +4,6 @@ import { ACTIVE_ORG_COOKIE } from "@/server/errors";
 import { handleRouteError, jsonCreated } from "@/server/http";
 import { assertSameOrigin } from "@/server/security/csrf";
 import { assertRateLimit, RateLimits } from "@/server/security/rate-limit";
-import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 
 const schema = z.object({
@@ -29,8 +28,15 @@ export async function POST(req: Request) {
     const body = schema.parse(await req.json());
     const result = await bootstrapPersonalOrganization(body);
 
-    const cookieStore = await cookies();
-    cookieStore.set(ACTIVE_ORG_COOKIE, result.organization.id, {
+    // Set the active-org cookie on the response object. Using
+    // `cookies()` from `next/headers` throws outside the Next.js
+    // request async store and was surfacing as a generic 500 after
+    // the organization row was already created.
+    const response = jsonCreated({
+      organization: result.organization,
+      membership: result.membership,
+    });
+    response.cookies.set(ACTIVE_ORG_COOKIE, result.organization.id, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
@@ -38,10 +44,7 @@ export async function POST(req: Request) {
       maxAge: 60 * 60 * 24 * 365,
     });
 
-    return jsonCreated({
-      organization: result.organization,
-      membership: result.membership,
-    });
+    return response;
   } catch (error) {
     return handleRouteError(error);
   }
