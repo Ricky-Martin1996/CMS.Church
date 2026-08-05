@@ -2,15 +2,16 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
+import { duration, easeOut, stagger } from "@/lib/motion";
 
 export function PageTransition({ children }: { children: ReactNode }) {
   const reduce = useReducedMotion();
 
   return (
     <motion.div
-      initial={reduce ? false : { opacity: 0, y: 12 }}
+      initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: duration.slow, ease: easeOut }}
       className="min-h-full"
     >
       {children}
@@ -31,12 +32,12 @@ export function FadeIn({
 
   return (
     <motion.div
-      initial={reduce ? false : { opacity: 0, y: 14 }}
+      initial={reduce ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.45,
-        delay,
-        ease: [0.22, 1, 0.36, 1],
+        duration: duration.slow,
+        delay: reduce ? 0 : delay,
+        ease: easeOut,
       }}
       className={className}
     >
@@ -62,7 +63,7 @@ export function StaggerChildren({
         hidden: {},
         show: {
           transition: {
-            staggerChildren: reduce ? 0 : 0.07,
+            staggerChildren: reduce ? 0 : 0.05,
           },
         },
       }}
@@ -73,11 +74,4 @@ export function StaggerChildren({
   );
 }
 
-export const staggerItem = {
-  hidden: { opacity: 0, y: 12 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
-  },
-};
+export const staggerItem = stagger.item;

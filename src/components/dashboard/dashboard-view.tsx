@@ -24,17 +24,17 @@ import { formatCurrency, formatNumber } from "@/lib/utils";
 
 export function DashboardView() {
   return (
-    <div className="space-y-6 lg:space-y-7">
+    <div className="page-pad">
       <FadeIn>
-        <div className="relative overflow-hidden rounded-[2rem] glass-strong p-6 sm:p-8">
-          <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-chart-2/20 blur-3xl" />
+        <div className="relative overflow-hidden rounded-[1.5rem] glass-strong p-6 sm:rounded-[2rem] sm:p-8">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/18 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-chart-2/16 blur-3xl" />
           <div className="relative max-w-2xl space-y-2">
             <p className="text-sm font-medium text-primary">Grace Community</p>
             <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-5xl">
               Good morning, Pastor
             </h1>
-            <p className="max-w-xl text-muted-foreground text-balance">
+            <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground text-balance">
               Your church is healthy this week — calm clarity across people,
               gatherings, and generosity.
             </p>

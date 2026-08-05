@@ -21,7 +21,7 @@ export function EventsView() {
   const heroPct = Math.round((hero.attendees / hero.capacity) * 100);
 
   return (
-    <div className="space-y-6">
+    <div className="page-pad">
       <FadeIn>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
@@ -29,7 +29,7 @@ export function EventsView() {
             <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
               Events
             </h1>
-            <p className="max-w-lg text-muted-foreground">
+            <p className="max-w-lg text-[15px] leading-relaxed text-muted-foreground">
               Plan with clarity — capacity, place, and presence in one calm view.
             </p>
           </div>

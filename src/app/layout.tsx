@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AccentProvider } from "@/lib/accent";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 const inter = Inter({
@@ -47,7 +48,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AccentProvider>{children}</AccentProvider>
+          <AccentProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </AccentProvider>
         </ThemeProvider>
       </body>
     </html>

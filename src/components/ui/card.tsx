@@ -14,7 +14,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-[1.75rem] text-card-foreground",
+      "rounded-[1.5rem] text-card-foreground",
       glass ? "glass" : "bg-card border border-border shadow-[var(--shadow-soft)]",
       elevate && "hover-lift",
       className
@@ -30,7 +30,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col gap-1.5 p-6 pb-3", className)}
+    className={cn("flex flex-col gap-1.5 p-5 pb-3 sm:p-6 sm:pb-3", className)}
     {...props}
   />
 ));
@@ -42,7 +42,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn("font-display text-lg font-semibold tracking-tight", className)}
+    className={cn("font-display text-base font-semibold tracking-tight sm:text-lg", className)}
     {...props}
   />
 ));
@@ -54,7 +54,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm leading-relaxed text-muted-foreground", className)}
     {...props}
   />
 ));
@@ -64,7 +64,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-3", className)} {...props} />
+  <div ref={ref} className={cn("p-5 pt-2 sm:p-6 sm:pt-3", className)} {...props} />
 ));
 CardContent.displayName = "CardContent";
 
@@ -74,7 +74,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
+    className={cn("flex items-center p-5 pt-0 sm:p-6", className)}
     {...props}
   />
 ));
@@ -93,11 +93,11 @@ export function MotionCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.35, delay, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "glass rounded-[1.75rem] text-card-foreground",
+        "glass rounded-[1.5rem] text-card-foreground",
         elevate && "hover-lift",
         className
       )}
