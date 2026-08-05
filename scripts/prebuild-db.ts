@@ -45,10 +45,12 @@ async function main() {
   console.log(`[prebuild-db] Migrating ${redacted}`);
 
   await run("npx", ["prisma", "migrate", "deploy"]);
+  await run("npx", ["tsx", path.join("scripts", "verify-db-schema.ts")]);
   await run("npx", [
     "tsx",
     path.join("scripts", "seed-if-empty.ts"),
   ]);
+  await run("npx", ["tsx", path.join("scripts", "verify-db-schema.ts")]);
 }
 
 main().catch((error) => {
