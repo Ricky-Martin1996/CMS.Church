@@ -14,7 +14,6 @@ import { Plus, Users } from "lucide-react";
 import {
   exportMembersCsvAction,
   getPreferencesAction,
-  importMembersCsvAction,
   listMembersAction,
   listSavedFiltersAction,
   listTagsAction,
@@ -184,8 +183,14 @@ export function PeopleView({
   const [prefsLoaded, setPrefsLoaded] = useState(!!initialData);
   const prefsHydratedRef = useRef(!!initialData);
 
-  const [importPending, startImport] = useTransition();
   const [exportPending, startExport] = useTransition();
+  const [flash, setFlash] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!flash) return;
+    const t = window.setTimeout(() => setFlash(null), 6_000);
+    return () => window.clearTimeout(t);
+  }, [flash]);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const filter = useMemo(
@@ -346,9 +351,24 @@ export function PeopleView({
                 Add member
               </Button>
             }
+            onCreated={() => {
+              setFlash("Member created.");
+              loadMembers(null, false);
+            }}
           />
         </div>
       </FadeIn>
+
+      {flash && (
+        <div
+          className="rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground"
+          role="status"
+          data-testid="people-flash"
+          aria-live="polite"
+        >
+          {flash}
+        </div>
+      )}
 
       <FadeIn delay={0.06}>
         <PeopleToolbar
@@ -374,11 +394,9 @@ export function PeopleView({
               }
             });
           }}
-          onImportCsv={(text) => {
-            startImport(async () => {
-              const res = await importMembersCsvAction(text);
-              if (res.ok) loadMembers(null, false);
-            });
+          onImported={(summary) => {
+            setFlash(summary.message);
+            loadMembers(null, false);
           }}
           onExportCsv={() => {
             startExport(async () => {
@@ -388,7 +406,6 @@ export function PeopleView({
               }
             });
           }}
-          importPending={importPending}
           exportPending={exportPending}
         />
       </FadeIn>

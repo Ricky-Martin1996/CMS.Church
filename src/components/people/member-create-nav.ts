@@ -16,6 +16,10 @@ export function deferAfterDialogClose(run: () => void): void {
   });
 }
 
-export function memberProfilePath(memberId: string): string {
-  return `/people/${memberId}`;
+export function memberProfilePath(
+  memberId: string,
+  options?: { created?: boolean }
+): string {
+  const base = `/people/${memberId}`;
+  return options?.created ? `${base}?created=1` : base;
 }

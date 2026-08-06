@@ -616,11 +616,32 @@ export async function importMembersCsv(input: {
     );
   }
   let created = 0;
+  let duplicates = 0;
   const tags = await tagRepository.ensureDefaults(input.organizationId);
   const tagBySlug = new Map(tags.map((t) => [t.slug, t]));
+  const seenEmails = new Set<string>();
+
+  const { prisma } = await import("@/infrastructure/db/prisma");
+  const existingEmails = await prisma.member.findMany({
+    where: {
+      organizationId: input.organizationId,
+      deletedAt: null,
+      email: { not: null },
+    },
+    select: { email: true },
+  });
+  for (const row of existingEmails) {
+    if (row.email) seenEmails.add(row.email.trim().toLowerCase());
+  }
 
   for (const row of input.rows) {
     if (!row.firstName?.trim() || !row.lastName?.trim()) continue;
+    const email = row.email?.trim().toLowerCase() || null;
+    if (email && seenEmails.has(email)) {
+      duplicates += 1;
+      continue;
+    }
+
     const tagIds =
       row.tags
         ?.split(/[|,]/)
@@ -649,13 +670,14 @@ export async function importMembersCsv(input: {
       organizationId: input.organizationId,
       memberId: member.id,
       type: ActivityType.IMPORTED,
-      title: "Imported from CSV",
+      title: "Imported from CSV/Excel",
       actorUserId: input.actorUserId,
     });
+    if (email) seenEmails.add(email);
     created += 1;
   }
 
-  return { created };
+  return { created, duplicates };
 }
 
 export async function listSavedFilters(organizationId: string, userId: string) {

@@ -18,6 +18,10 @@ describe("BUG-002 member create hang", () => {
 
   it("memberProfilePath points at the profile route", () => {
     assert.equal(memberProfilePath("mem_123"), "/people/mem_123");
+    assert.equal(
+      memberProfilePath("mem_123", { created: true }),
+      "/people/mem_123?created=1"
+    );
   });
 
   it("deferAfterDialogClose runs after the current turn (post RemoveScroll)", async () => {

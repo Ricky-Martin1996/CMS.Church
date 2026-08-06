@@ -17,6 +17,8 @@
     "db:setup:prod": "tsx scripts/prod-db-setup.ts",
     "db:studio": "prisma studio",
     "test": "tsx --test \"src/**/*.test.ts\"",
+    "test:e2e": "playwright test",
+    "test:qa": "tsx scripts/qa-journey-report.ts && playwright test && tsx scripts/qa-compose-report.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -57,16 +59,19 @@
     "svix": "^1.99.1",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.43",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.22",
+    "playwright": "^1.62.1",
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.7",

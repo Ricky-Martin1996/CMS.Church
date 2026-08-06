@@ -97,7 +97,9 @@ export function MemberCreateDialog({
                 setOpen(false);
                 // Defer navigation until Dialog/RemoveScroll releases body lock.
                 deferAfterDialogClose(() => {
-                  router.push(memberProfilePath(memberId));
+                  router.push(
+                    memberProfilePath(memberId, { created: true })
+                  );
                   router.refresh();
                 });
               } catch (err) {
