@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { createMemberAction, listTagsAction } from "@/application/people/actions";
+import {
+  deferAfterDialogClose,
+  memberProfilePath,
+} from "@/components/people/member-create-nav";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,7 +36,7 @@ export function MemberCreateDialog({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tags, setTags] = useState<TagEntity[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -66,28 +70,44 @@ export function MemberCreateDialog({
           onSubmit={(e) => {
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
-            startTransition(async () => {
+            void (async () => {
+              setPending(true);
               setError(null);
-              const res = await createMemberAction({
-                firstName: String(fd.get("firstName") ?? ""),
-                lastName: String(fd.get("lastName") ?? ""),
-                email: String(fd.get("email") ?? ""),
-                phone: String(fd.get("phone") ?? "") || undefined,
-                whatsapp: String(fd.get("whatsapp") ?? "") || undefined,
-                status,
-                lifecycle,
-                campus: String(fd.get("campus") ?? "") || undefined,
-                ministryRole: String(fd.get("ministryRole") ?? "") || undefined,
-                tagIds: selectedTags.length ? selectedTags : undefined,
-              });
-              if (!res.ok) {
-                setError(res.error);
-                return;
+              try {
+                const res = await createMemberAction({
+                  firstName: String(fd.get("firstName") ?? ""),
+                  lastName: String(fd.get("lastName") ?? ""),
+                  email: String(fd.get("email") ?? ""),
+                  phone: String(fd.get("phone") ?? "") || undefined,
+                  whatsapp: String(fd.get("whatsapp") ?? "") || undefined,
+                  status,
+                  lifecycle,
+                  campus: String(fd.get("campus") ?? "") || undefined,
+                  ministryRole:
+                    String(fd.get("ministryRole") ?? "") || undefined,
+                  tagIds: selectedTags.length ? selectedTags : undefined,
+                });
+                if (!res.ok) {
+                  setError(res.error);
+                  return;
+                }
+
+                const memberId = res.data.id;
+                onCreated?.(memberId);
+                setOpen(false);
+                // Defer navigation until Dialog/RemoveScroll releases body lock.
+                deferAfterDialogClose(() => {
+                  router.push(memberProfilePath(memberId));
+                  router.refresh();
+                });
+              } catch (err) {
+                setError(
+                  err instanceof Error ? err.message : "Something went wrong"
+                );
+              } finally {
+                setPending(false);
               }
-              setOpen(false);
-              onCreated?.(res.data.id);
-              router.push(`/people/${res.data.id}`);
-            });
+            })();
           }}
         >
           <div className="grid gap-4 sm:grid-cols-2">

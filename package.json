@@ -16,6 +16,7 @@
     "db:verify": "tsx scripts/verify-db-schema.ts",
     "db:setup:prod": "tsx scripts/prod-db-setup.ts",
     "db:studio": "prisma studio",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "postinstall": "prisma generate"
   },
   "prisma": {
