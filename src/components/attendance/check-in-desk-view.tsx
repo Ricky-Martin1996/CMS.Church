@@ -304,6 +304,10 @@ export function CheckInDeskView() {
     notes?: string
   ) => {
     if (!sessionId) return;
+    if (!isLive) {
+      setError("Check-in is only allowed while the session is live");
+      return;
+    }
     startTransition(async () => {
       const res = await checkInMemberAction(sessionId, {
         memberId: member.id,

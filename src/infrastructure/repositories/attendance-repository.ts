@@ -227,6 +227,13 @@ async function requireSession(organizationId: string, sessionId: string) {
   return session;
 }
 
+/** BUG-005: check-in is only valid while the session is live. */
+function assertSessionLive(session: { status: string }) {
+  if (session.status !== AttendanceSessionStatus.LIVE) {
+    throw conflict("Check-in is only allowed while the session is live");
+  }
+}
+
 async function requireMember(organizationId: string, memberId: string) {
   const member = await prisma.member.findFirst({
     where: { id: memberId, organizationId, deletedAt: null },
@@ -444,6 +451,7 @@ export const attendanceRecordRepository: AttendanceRecordRepository = {
 
   async checkInMember(input) {
     const session = await requireSession(input.organizationId, input.sessionId);
+    assertSessionLive(session);
     const member = await requireMember(input.organizationId, input.memberId);
 
     let householdId = input.householdId ?? null;
@@ -693,7 +701,11 @@ export const attendanceRecordRepository: AttendanceRecordRepository = {
   },
 
   async checkInHousehold(input) {
-    await requireSession(input.organizationId, input.sessionId);
+    const session = await requireSession(
+      input.organizationId,
+      input.sessionId
+    );
+    assertSessionLive(session);
     const household = await requireHousehold(
       input.organizationId,
       input.householdId
@@ -1064,7 +1076,11 @@ export const visitorRepository: VisitorRepository = {
   },
 
   async checkInVisitor(input) {
-    await requireSession(input.organizationId, input.sessionId);
+    const session = await requireSession(
+      input.organizationId,
+      input.sessionId
+    );
+    assertSessionLive(session);
 
     const visitor = await prisma.visitor.findFirst({
       where: { id: input.visitorId, organizationId: input.organizationId },
