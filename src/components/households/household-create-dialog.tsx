@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { createHouseholdAction } from "@/application/households/actions";
+import {
+  deferAfterDialogClose,
+  householdProfilePath,
+} from "@/lib/defer-after-dialog-close";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,7 +36,7 @@ export function HouseholdCreateDialog({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<HouseholdStatus>(HouseholdStatus.ACTIVE);
 
@@ -52,34 +56,50 @@ export function HouseholdCreateDialog({
           onSubmit={(e) => {
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
-            startTransition(async () => {
+            void (async () => {
+              setPending(true);
               setError(null);
-              const res = await createHouseholdAction({
-                familyName: String(fd.get("familyName") ?? ""),
-                householdCode: String(fd.get("householdCode") ?? "") || undefined,
-                addressLine1: String(fd.get("addressLine1") ?? "") || undefined,
-                city: String(fd.get("city") ?? "") || undefined,
-                state: String(fd.get("state") ?? "") || undefined,
-                postalCode: String(fd.get("postalCode") ?? "") || undefined,
-                country: String(fd.get("country") ?? "") || undefined,
-                preferredLanguage:
-                  String(fd.get("preferredLanguage") ?? "") || undefined,
-                emergencyContact:
-                  String(fd.get("emergencyContact") ?? "") || undefined,
-                emergencyPhone:
-                  String(fd.get("emergencyPhone") ?? "") || undefined,
-                cellGroup: String(fd.get("cellGroup") ?? "") || undefined,
-                notes: String(fd.get("notes") ?? "") || undefined,
-                status,
-              });
-              if (!res.ok) {
-                setError(res.error);
-                return;
+              try {
+                const res = await createHouseholdAction({
+                  familyName: String(fd.get("familyName") ?? ""),
+                  householdCode:
+                    String(fd.get("householdCode") ?? "") || undefined,
+                  addressLine1:
+                    String(fd.get("addressLine1") ?? "") || undefined,
+                  city: String(fd.get("city") ?? "") || undefined,
+                  state: String(fd.get("state") ?? "") || undefined,
+                  postalCode: String(fd.get("postalCode") ?? "") || undefined,
+                  country: String(fd.get("country") ?? "") || undefined,
+                  preferredLanguage:
+                    String(fd.get("preferredLanguage") ?? "") || undefined,
+                  emergencyContact:
+                    String(fd.get("emergencyContact") ?? "") || undefined,
+                  emergencyPhone:
+                    String(fd.get("emergencyPhone") ?? "") || undefined,
+                  cellGroup: String(fd.get("cellGroup") ?? "") || undefined,
+                  notes: String(fd.get("notes") ?? "") || undefined,
+                  status,
+                });
+                if (!res.ok) {
+                  setError(res.error);
+                  return;
+                }
+                const householdId = res.data.id;
+                onCreated?.(householdId);
+                setOpen(false);
+                // Defer navigation until Dialog/RemoveScroll releases body lock.
+                deferAfterDialogClose(() => {
+                  router.push(householdProfilePath(householdId));
+                  router.refresh();
+                });
+              } catch (err) {
+                setError(
+                  err instanceof Error ? err.message : "Something went wrong"
+                );
+              } finally {
+                setPending(false);
               }
-              setOpen(false);
-              onCreated?.(res.data.id);
-              router.push(`/households/${res.data.id}`);
-            });
+            })();
           }}
         >
           <div className="space-y-2">
@@ -89,7 +109,11 @@ export function HouseholdCreateDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="householdCode">Household code</Label>
-              <Input id="householdCode" name="householdCode" placeholder="Optional" />
+              <Input
+                id="householdCode"
+                name="householdCode"
+                placeholder="Optional"
+              />
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
@@ -152,7 +176,11 @@ export function HouseholdCreateDialog({
             <Label htmlFor="notes">Notes</Label>
             <Textarea id="notes" name="notes" rows={3} />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          )}
           <Button type="submit" variant="glow" disabled={pending}>
             {pending && <Loader2 className="h-4 w-4 animate-spin" />}
             Create household
