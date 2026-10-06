@@ -638,6 +638,7 @@ async function dispatchToRecipients(input: {
   const provider = providerForChannel(input.channel);
   let sent = 0;
   let failed = 0;
+  let pending = 0;
 
   for (const recipient of input.recipients) {
     const personalizedBody = renderTemplate(input.body, recipient.context);
@@ -655,10 +656,14 @@ async function dispatchToRecipients(input: {
       recipientName: recipient.name,
     });
 
-    const status: HubDeliveryStatus = result.ok
-      ? HubDeliveryStatus.SENT
-      : HubDeliveryStatus.FAILED;
-    if (result.ok) sent += 1;
+    // BUG-008: queued stub providers must not be recorded as SENT.
+    const status: HubDeliveryStatus = result.queued
+      ? HubDeliveryStatus.PENDING
+      : result.ok
+        ? HubDeliveryStatus.SENT
+        : HubDeliveryStatus.FAILED;
+    if (result.queued) pending += 1;
+    else if (result.ok) sent += 1;
     else failed += 1;
 
     await prisma.communicationDelivery.create({
@@ -678,8 +683,8 @@ async function dispatchToRecipients(input: {
         externalId: result.externalId,
         metadata: result.metadata as Prisma.InputJsonValue,
         errorMessage: result.error ?? null,
-        sentAt: result.ok ? new Date() : null,
-        failedAt: result.ok ? null : new Date(),
+        sentAt: result.ok && !result.queued ? new Date() : null,
+        failedAt: !result.ok && !result.queued ? new Date() : null,
       },
     });
   }
@@ -694,7 +699,18 @@ async function dispatchToRecipients(input: {
     messageId: input.messageId,
   });
 
-  return { sent, failed, provider: provider.kind };
+  return { sent, failed, pending, provider: provider.kind };
+}
+
+/** BUG-008: map provider outcomes without claiming SENT when nothing delivered. */
+function resolveDispatchMessageStatus(result: {
+  sent: number;
+  failed: number;
+  pending: number;
+}): HubMessageStatus {
+  if (result.sent > 0) return HubMessageStatus.SENT;
+  if (result.pending > 0) return HubMessageStatus.QUEUED;
+  return HubMessageStatus.FAILED;
 }
 
 export const communicationRepository: CommunicationRepository = {
@@ -935,24 +951,26 @@ export const communicationRepository: CommunicationRepository = {
       actorUserId: input.actorUserId,
     });
 
-    const finalStatus =
-      result.failed > 0 && result.sent === 0
-        ? HubMessageStatus.FAILED
-        : HubMessageStatus.SENT;
+    const finalStatus = resolveDispatchMessageStatus(result);
 
     await prisma.communicationMessage.update({
       where: { id: message.id },
       data: {
         status: finalStatus as PrismaHubMessageStatus,
-        sentAt: new Date(),
-        failedAt: finalStatus === "FAILED" ? new Date() : null,
+        sentAt: finalStatus === HubMessageStatus.SENT ? new Date() : null,
+        failedAt: finalStatus === HubMessageStatus.FAILED ? new Date() : null,
         failureReason:
-          finalStatus === "FAILED" ? "All deliveries failed" : null,
+          finalStatus === HubMessageStatus.FAILED
+            ? "All deliveries failed"
+            : finalStatus === HubMessageStatus.QUEUED
+              ? "Provider not configured — deliveries pending"
+              : null,
         metadata: {
           provider: result.provider,
-          queued: false,
+          queued: result.pending > 0,
           sent: result.sent,
           failed: result.failed,
+          pending: result.pending,
         },
       },
     });
@@ -961,7 +979,7 @@ export const communicationRepository: CommunicationRepository = {
       where: { id: campaign.id },
       data: {
         status: finalStatus as PrismaHubMessageStatus,
-        sentAt: new Date(),
+        sentAt: finalStatus === HubMessageStatus.SENT ? new Date() : null,
       },
       include: { _count: { select: { deliveries: true } } },
     });
@@ -971,9 +989,16 @@ export const communicationRepository: CommunicationRepository = {
       type:
         finalStatus === HubMessageStatus.FAILED
           ? HubActivityType.FAILED
-          : HubActivityType.SENT,
-      title: `Campaign sent: ${campaign.name}`,
-      description: `${result.sent} delivered · ${result.failed} failed`,
+          : finalStatus === HubMessageStatus.QUEUED
+            ? HubActivityType.QUEUED
+            : HubActivityType.SENT,
+      title:
+        finalStatus === HubMessageStatus.QUEUED
+          ? `Campaign queued: ${campaign.name}`
+          : finalStatus === HubMessageStatus.FAILED
+            ? `Campaign failed: ${campaign.name}`
+            : `Campaign sent: ${campaign.name}`,
+      description: `${result.sent} sent · ${result.pending} pending · ${result.failed} failed`,
       campaignId: campaign.id,
       messageId: message.id,
       actorUserId: input.actorUserId,
@@ -1157,22 +1182,20 @@ export const communicationRepository: CommunicationRepository = {
       actorUserId: input.actorUserId,
     });
 
-    const finalStatus =
-      result.failed > 0 && result.sent === 0
-        ? HubMessageStatus.FAILED
-        : HubMessageStatus.SENT;
+    const finalStatus = resolveDispatchMessageStatus(result);
 
     const updated = await prisma.communicationMessage.update({
       where: { id: message.id },
       data: {
         status: finalStatus as PrismaHubMessageStatus,
-        sentAt: new Date(),
-        failedAt: finalStatus === "FAILED" ? new Date() : null,
+        sentAt: finalStatus === HubMessageStatus.SENT ? new Date() : null,
+        failedAt: finalStatus === HubMessageStatus.FAILED ? new Date() : null,
         metadata: {
           provider: result.provider,
-          queued: false,
+          queued: result.pending > 0,
           sent: result.sent,
           failed: result.failed,
+          pending: result.pending,
         },
       },
       include: { campaign: { select: { name: true } } },
@@ -1183,9 +1206,16 @@ export const communicationRepository: CommunicationRepository = {
       type:
         finalStatus === HubMessageStatus.FAILED
           ? HubActivityType.FAILED
-          : HubActivityType.SENT,
-      title: finalStatus === "FAILED" ? "Message failed" : "Message sent",
-      description: `${result.sent} delivered · ${result.failed} failed`,
+          : finalStatus === HubMessageStatus.QUEUED
+            ? HubActivityType.QUEUED
+            : HubActivityType.SENT,
+      title:
+        finalStatus === HubMessageStatus.FAILED
+          ? "Message failed"
+          : finalStatus === HubMessageStatus.QUEUED
+            ? "Message queued (provider not configured)"
+            : "Message sent",
+      description: `${result.sent} sent · ${result.pending} pending · ${result.failed} failed`,
       messageId: message.id,
       actorUserId: input.actorUserId,
     });
