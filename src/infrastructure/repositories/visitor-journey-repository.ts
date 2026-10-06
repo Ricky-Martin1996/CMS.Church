@@ -27,7 +27,7 @@ import {
 } from "@/domain/enums/visitor";
 import { memberRepository } from "@/infrastructure/repositories/member-repository";
 import { prisma } from "@/infrastructure/db/prisma";
-import { notFound } from "@/server/errors";
+import { conflict, notFound } from "@/server/errors";
 import type {
   CommunicationChannel as PrismaCommunicationChannel,
   CommunicationDirection as PrismaCommunicationDirection,
@@ -963,7 +963,7 @@ export const visitorJourneyRepository: VisitorJourneyRepository = {
   async convertToMember(input) {
     const visitor = await requireVisitor(input.organizationId, input.visitorId);
     if (visitor.convertedMemberId) {
-      throw notFound("Visitor already converted");
+      throw conflict("Visitor already converted");
     }
 
     const member = await memberRepository.create({
