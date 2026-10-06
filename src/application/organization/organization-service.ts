@@ -28,6 +28,15 @@ export type EnsureOrganizationInput = {
   ownerRole?: Role;
 };
 
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code: string }).code === "P2002"
+  );
+}
+
 /**
  * Creates (or links via Clerk org id) an organization and ensures the caller
  * is a member. Never joins an existing org solely because a slug collides —
@@ -58,12 +67,23 @@ export async function ensureOrganizationWithOwner(
         );
       }
     } else {
-      organization = await organizationRepository.create({
-        name: input.name,
-        slug,
-        clerkOrgId: input.clerkOrgId ?? null,
-        imageUrl: input.imageUrl ?? null,
-      });
+      try {
+        organization = await organizationRepository.create({
+          name: input.name,
+          slug,
+          clerkOrgId: input.clerkOrgId ?? null,
+          imageUrl: input.imageUrl ?? null,
+        });
+      } catch (error) {
+        // Race: another request inserted the same slug between find and create.
+        // Map Prisma P2002 to a 409 instead of an unhandled 500.
+        if (isUniqueConstraintError(error)) {
+          throw conflict(
+            "That church URL slug is already taken. Choose a different name or slug."
+          );
+        }
+        throw error;
+      }
     }
   }
 

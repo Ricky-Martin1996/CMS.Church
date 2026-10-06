@@ -17,6 +17,7 @@
     "db:setup:prod": "tsx scripts/prod-db-setup.ts",
     "db:studio": "prisma studio",
     "test": "tsx --test \"src/**/*.test.ts\"",
+    "test:bug001": "tsx scripts/verify-bug001-onboard.ts",
     "test:e2e": "playwright test",
     "test:qa": "tsx scripts/qa-journey-report.ts && playwright test && tsx scripts/qa-compose-report.ts",
     "postinstall": "prisma generate"
