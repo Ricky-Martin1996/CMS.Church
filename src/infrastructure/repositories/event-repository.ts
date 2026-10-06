@@ -1213,6 +1213,10 @@ export const eventRepository: EventRepository = {
       },
     });
     if (!event) throw notFound("Event not found");
+    // BUG-011: check-in only for published events (not draft/cancelled/completed).
+    if (event.status !== ChurchEventStatus.PUBLISHED) {
+      throw conflict("Check-in is only allowed for published events");
+    }
 
     let ticket: {
       id: string;
@@ -1261,6 +1265,9 @@ export const eventRepository: EventRepository = {
       }
       if (reg.status === "CANCELLED") {
         throw conflict("Registration was cancelled");
+      }
+      if (reg.status === RegistrationStatus.WAITLISTED) {
+        throw conflict("Waitlisted guests cannot check in until registered");
       }
       memberId = memberId ?? reg.memberId;
     }
