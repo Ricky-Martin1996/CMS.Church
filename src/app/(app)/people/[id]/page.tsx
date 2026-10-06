@@ -12,10 +12,15 @@ export const metadata: Metadata = {
 
 type PageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ created?: string }>;
 };
 
-export default async function MemberProfilePage({ params }: PageProps) {
+export default async function MemberProfilePage({
+  params,
+  searchParams,
+}: PageProps) {
   const { id } = await params;
+  const query = await searchParams;
   const result = await getMemberProfileAction(id);
 
   if (!result.ok) {
@@ -26,5 +31,10 @@ export default async function MemberProfilePage({ params }: PageProps) {
     JSON.stringify(result.data)
   ) as SerializedProfile;
 
-  return <MemberProfileView profile={profile} />;
+  return (
+    <MemberProfileView
+      profile={profile}
+      justCreated={query.created === "1"}
+    />
+  );
 }

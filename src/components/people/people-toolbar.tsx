@@ -11,7 +11,6 @@ import {
   Rows3,
   Save,
   Search,
-  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { MemberImportDialog } from "@/components/people/member-import-dialog";
 import {
   MEMBER_STATUS_LABELS,
   MemberStatus,
@@ -82,9 +82,12 @@ export type PeopleToolbarProps = {
   }>;
   onApplyFilter: (def: MemberFilterDefinition) => void;
   onSaveFilter: (name: string) => void;
-  onImportCsv: (text: string) => void;
+  onImported: (summary: {
+    created: number;
+    skipped: number;
+    message: string;
+  }) => void;
   onExportCsv: () => void;
-  importPending?: boolean;
   exportPending?: boolean;
 };
 
@@ -103,9 +106,8 @@ export function PeopleToolbar({
   savedFilters,
   onApplyFilter,
   onSaveFilter,
-  onImportCsv,
+  onImported,
   onExportCsv,
-  importPending,
   exportPending,
 }: PeopleToolbarProps) {
   const [saveName, setSaveName] = useState("");
@@ -205,27 +207,7 @@ export function PeopleToolbar({
             </DialogContent>
           </Dialog>
 
-          <label className="cursor-pointer">
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              className="sr-only"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = () => onImportCsv(String(reader.result ?? ""));
-                reader.readAsText(file);
-                e.target.value = "";
-              }}
-            />
-            <Button variant="glass" size="sm" asChild disabled={importPending}>
-              <span>
-                <Upload className="h-4 w-4" />
-                Import CSV
-              </span>
-            </Button>
-          </label>
+          <MemberImportDialog onImported={onImported} />
 
           <Button
             variant="glass"

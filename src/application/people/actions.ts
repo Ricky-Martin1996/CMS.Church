@@ -271,46 +271,130 @@ export async function exportMembersCsvAction(filter?: z.infer<typeof filterSchem
   }
 }
 
-export async function importMembersCsvAction(csvText: string) {
+export async function previewMemberImportAction(raw: {
+  filename: string;
+  text?: string;
+  base64?: string;
+}) {
+  try {
+    await requirePermission(Permission.PEOPLE_IMPORT);
+    const filename = z.string().min(1).max(260).parse(raw.filename);
+    const text = raw.text
+      ? z.string().max(2_000_000).parse(raw.text)
+      : undefined;
+    const buffer = raw.base64
+      ? Buffer.from(z.string().max(3_000_000).parse(raw.base64), "base64")
+      : undefined;
+
+    const {
+      parseMemberImportFile,
+    } = await import("@/lib/member-import");
+    const parsed = parseMemberImportFile({ filename, text, buffer });
+    return {
+      ok: true as const,
+      data: {
+        headers: parsed.headers,
+        rowCount: parsed.rows.length,
+        skipped: parsed.skipped,
+        issues: parsed.issues.slice(0, 50),
+        preview: parsed.rows.slice(0, 20).map((r) => ({
+          lineNumber: r.lineNumber,
+          firstName: r.firstName,
+          lastName: r.lastName,
+          email: r.email ?? "",
+          phone: r.phone ?? "",
+          status: r.status ?? "",
+          campus: r.campus ?? "",
+          ministryRole: r.ministryRole ?? "",
+          tags: r.tags ?? "",
+        })),
+      },
+    };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function importMembersCsvAction(raw: unknown) {
   try {
     const ctx = await requirePermission(Permission.PEOPLE_IMPORT);
     assertRateLimit(`csv:members:${ctx.user.id}`, RateLimits.csvImport);
-    const text = z.string().max(2_000_000).parse(csvText);
-    const lines = text.trim().split(/\r?\n/);
-    if (lines.length < 2) {
-      return { ok: false as const, error: "CSV has no data rows" };
+
+    // Back-compat: plain CSV text string from older clients
+    if (typeof raw === "string") {
+      const {
+        parseMemberCsv,
+        toImportServiceRows,
+      } = await import("@/lib/member-import");
+      const parsed = parseMemberCsv(z.string().max(2_000_000).parse(raw));
+      if (parsed.rows.length === 0) {
+        return {
+          ok: false as const,
+          error:
+            parsed.issues[0]?.message ??
+            "No valid members found. Check that first/last name columns exist.",
+        };
+      }
+      const result = await importMembersCsv({
+        organizationId: ctx.organization.id,
+        actorUserId: ctx.user.id,
+        rows: toImportServiceRows(parsed.rows),
+      });
+      revalidatePath("/people");
+      return {
+        ok: true as const,
+        data: {
+          ...result,
+          skipped: parsed.skipped + (result.duplicates ?? 0),
+          issues: parsed.issues.slice(0, 20),
+        },
+      };
     }
-    if (lines.length - 1 > 1000) {
+
+    const body = z
+      .object({
+        filename: z.string().min(1).max(260),
+        text: z.string().max(2_000_000).optional(),
+        base64: z.string().max(3_000_000).optional(),
+      })
+      .parse(raw);
+
+    const {
+      parseMemberImportFile,
+      toImportServiceRows,
+    } = await import("@/lib/member-import");
+    const buffer = body.base64
+      ? Buffer.from(body.base64, "base64")
+      : undefined;
+    const parsed = parseMemberImportFile({
+      filename: body.filename,
+      text: body.text,
+      buffer,
+    });
+
+    if (parsed.rows.length === 0) {
       return {
         ok: false as const,
-        error: "CSV import is limited to 1000 rows per upload",
+        error:
+          parsed.issues[0]?.message ??
+          "No valid members found. Check that first/last name columns exist.",
       };
     }
-    const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
-    const rows = lines.slice(1).map((line) => {
-      const cols = parseCsvLine(line);
-      const obj: Record<string, string> = {};
-      headers.forEach((h, i) => {
-        obj[h] = cols[i] ?? "";
-      });
-      return {
-        firstName: obj.firstName || obj.FirstName || "",
-        lastName: obj.lastName || obj.LastName || "",
-        email: obj.email || obj.Email,
-        phone: obj.phone || obj.Phone,
-        status: obj.status || obj.Status,
-        campus: obj.campus || obj.Campus,
-        ministryRole: obj.ministryRole || obj.role || obj.Role,
-        tags: obj.tags || obj.Tags,
-      };
-    });
+
     const result = await importMembersCsv({
       organizationId: ctx.organization.id,
       actorUserId: ctx.user.id,
-      rows,
+      rows: toImportServiceRows(parsed.rows),
     });
     revalidatePath("/people");
-    return { ok: true as const, data: result };
+    return {
+      ok: true as const,
+      data: {
+        ...result,
+        skipped: parsed.skipped + (result.duplicates ?? 0),
+        issues: parsed.issues.slice(0, 20),
+      },
+    };
   } catch (error) {
     return actionError(error);
   }
@@ -625,28 +709,4 @@ export async function savePreferencesAction(raw: unknown) {
   } catch (error) {
     return actionError(error);
   }
-}
-
-function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === "," && !inQuotes) {
-      result.push(current);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current);
-  return result.map((s) => s.trim());
 }

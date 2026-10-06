@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -182,14 +182,34 @@ const COMM_TYPES = [
 
 export function MemberProfileView({
   profile: initial,
+  justCreated = false,
 }: {
   profile: SerializedProfile;
+  justCreated?: boolean;
 }) {
   const [profile, setProfile] = useState(initial);
   const [tab, setTab] = useState<TabId>("overview");
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [createToast, setCreateToast] = useState(
+    justCreated ? "Member created successfully." : null
+  );
   const coverBackground = safeBackgroundImage(profile.coverUrl);
+
+  useEffect(() => {
+    if (!justCreated || typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("created")) {
+      url.searchParams.delete("created");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
+  }, [justCreated]);
+
+  useEffect(() => {
+    if (!createToast) return;
+    const t = window.setTimeout(() => setCreateToast(null), 6_000);
+    return () => window.clearTimeout(t);
+  }, [createToast]);
 
   const refresh = () => {
     window.location.reload();
@@ -235,6 +255,17 @@ export function MemberProfileView({
 
   return (
     <div className="space-y-6 pb-12">
+      {createToast && (
+        <div
+          className="rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground"
+          role="status"
+          data-testid="member-create-toast"
+          aria-live="polite"
+        >
+          {createToast}
+        </div>
+      )}
+
       <FadeIn>
         <Link
           href="/people"
