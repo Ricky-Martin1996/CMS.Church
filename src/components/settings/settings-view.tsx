@@ -22,6 +22,7 @@ import { AccentPicker } from "@/components/layout/accent-picker";
 export function SettingsView() {
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [weeklyDigest, setWeeklyDigest] = useState(true);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [demoState, setDemoState] = useState<
     "idle" | "loading" | "success" | "error" | "skeleton"
   >("idle");
@@ -58,15 +59,46 @@ export function SettingsView() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="church-name">Church name</Label>
-              <Input id="church-name" defaultValue="Grace Community Church" />
+              <Input
+                id="church-name"
+                defaultValue="Grace Community Church"
+                disabled
+                aria-describedby="church-profile-help"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="campus">Primary campus</Label>
-              <Input id="campus" defaultValue="Main Campus · 120 Faith Ave" />
+              <Input
+                id="campus"
+                defaultValue="Main Campus · 120 Faith Ave"
+                disabled
+                aria-describedby="church-profile-help"
+              />
             </div>
-            <Button variant="glow" className="w-full sm:w-auto">
+            <p
+              id="church-profile-help"
+              className="text-sm text-muted-foreground"
+            >
+              Church profile editing is not connected to the organization API
+              yet. Appearance preferences below still apply in this browser.
+            </p>
+            <Button
+              type="button"
+              variant="glow"
+              className="w-full sm:w-auto"
+              onClick={() =>
+                setProfileMessage(
+                  "Church profile save is not available yet — no changes were stored."
+                )
+              }
+            >
               Save changes
             </Button>
+            {profileMessage && (
+              <p className="text-sm text-destructive" role="status">
+                {profileMessage}
+              </p>
+            )}
           </CardContent>
         </MotionCard>
 
