@@ -4,6 +4,7 @@ import {
   DashboardView,
   type SerializedDashboard,
 } from "@/components/dashboard/dashboard-view";
+import { executiveDashboardCacheKey } from "@/application/intelligence/dashboard-cache-key";
 import { getExecutiveDashboard } from "@/application/intelligence/dashboard-service";
 import { Permission } from "@/domain/permissions/rbac";
 import { requirePermission } from "@/server/auth/session";
@@ -19,7 +20,11 @@ async function loadDashboard(): Promise<SerializedDashboard | null> {
     const ctx = await requirePermission(Permission.PEOPLE_READ);
     const cached = unstable_cache(
       async () => getExecutiveDashboard(ctx),
-      ["executive-dashboard", ctx.organization.id, ctx.role],
+      executiveDashboardCacheKey({
+        organizationId: ctx.organization.id,
+        role: ctx.role,
+        userId: ctx.user.id,
+      }),
       {
         revalidate: 45,
         tags: [
