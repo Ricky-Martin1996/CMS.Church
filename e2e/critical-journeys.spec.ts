@@ -1,9 +1,13 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext } from "@playwright/test";
 
 /**
  * Critical journey AUTH GATES only.
- * Does not automate Clerk login (CAPTCHA). Asserts unauthenticated redirects
- * and the public /api/health readiness probe.
+ * Does not automate Clerk login (CAPTCHA). Asserts unauthenticated access is
+ * blocked plus public /api/health.
+ *
+ * With format-valid but non-real Clerk keys, `auth.protect()` may 307 to
+ * `/sign-in` or to Clerk's handshake URL (`x-clerk-auth-status: handshake`)
+ * instead of rendering the protected page. Both count as a closed gate.
  */
 
 const PROTECTED_MODULES: Array<{ name: string; path: string }> = [
@@ -20,26 +24,72 @@ const PROTECTED_MODULES: Array<{ name: string; path: string }> = [
   { name: "settings", path: "/settings" },
 ];
 
-async function expectRedirectedToSignIn(page: Page, path: string) {
-  await page.goto(path, { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL(/\/sign-in/);
+async function expectAuthGate(request: APIRequestContext, path: string) {
+  const response = await request.get(path, {
+    maxRedirects: 0,
+    headers: { Accept: "text/html" },
+  });
+
+  const status = response.status();
+  const headers = response.headers();
+  const location = headers["location"] ?? "";
+  const authStatus = headers["x-clerk-auth-status"] ?? "";
+  const authReason = headers["x-clerk-auth-reason"] ?? "";
+  const rewrite = headers["x-middleware-rewrite"] ?? "";
+
+  // Anonymous users must not receive the protected app document.
+  expect(status, `Protected ${path} must not return 200`).not.toBe(200);
+
+  const redirectedToSignIn =
+    [301, 302, 303, 307, 308].includes(status) && /\/sign-in/.test(location);
+  const clerkHandshake =
+    authStatus === "handshake" || /\/v1\/client\/handshake/.test(location);
+  const clerkSignedOutProtect =
+    authStatus === "signed-out" &&
+    (authReason.includes("protect") ||
+      authReason.includes("dev-browser") ||
+      /\/sign-in/.test(rewrite) ||
+      /clerk_/.test(rewrite));
+
+  expect(
+    redirectedToSignIn || clerkHandshake || clerkSignedOutProtect,
+    `Expected auth gate for ${path} (status=${status}, location=${location}, auth=${authStatus}/${authReason})`,
+  ).toBeTruthy();
 }
 
 test.describe("Critical journey auth gates", () => {
   for (const module of PROTECTED_MODULES) {
-    test(`${module.name} redirects unauthenticated users to sign-in`, async ({
-      page,
-    }) => {
-      await expectRedirectedToSignIn(page, module.path);
+    test(`${module.name} blocks unauthenticated users`, async ({ request }) => {
+      await expectAuthGate(request, module.path);
     });
   }
 
-  test("sign-in is publicly reachable", async ({ page }) => {
-    const response = await page.goto("/sign-in", {
-      waitUntil: "domcontentloaded",
+  test("sign-in is publicly reachable (not protect-blocked)", async ({
+    request,
+  }) => {
+    const response = await request.get("/sign-in", {
+      maxRedirects: 0,
+      headers: { Accept: "text/html" },
     });
-    expect(response?.ok() || response?.status() === 200).toBeTruthy();
-    await expect(page).toHaveURL(/\/sign-in/);
+
+    const status = response.status();
+    const headers = response.headers();
+    const location = headers["location"] ?? "";
+    const authStatus = headers["x-clerk-auth-status"] ?? "";
+    const authReason = headers["x-clerk-auth-reason"] ?? "";
+
+    // Public route: never Clerk "protect". With fake keys, handshake 307 is OK.
+    expect(authReason.includes("protect")).toBeFalsy();
+    const publiclyOk =
+      status === 200 ||
+      (status === 307 &&
+        (authStatus === "handshake" ||
+          /\/v1\/client\/handshake/.test(location) ||
+          /\/sign-in/.test(location)));
+    expect(
+      publiclyOk,
+      `Expected public sign-in access (status=${status}, location=${location}, auth=${authStatus}/${authReason})`,
+    ).toBeTruthy();
   });
 
   test("/api/health responds without auth", async ({ request }) => {

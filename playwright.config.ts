@@ -32,5 +32,20 @@ export default defineConfig({
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
+        // Format-valid fake Clerk keys so middleware can redirect without
+        // real credentials. (pk_test_xxxxxxxx is rejected by Clerk SDK.)
+        env: {
+          ...process.env,
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+            process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+            !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("xxxx")
+              ? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+              : "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k",
+          CLERK_SECRET_KEY:
+            process.env.CLERK_SECRET_KEY &&
+            !process.env.CLERK_SECRET_KEY.includes("xxxx")
+              ? process.env.CLERK_SECRET_KEY
+              : "sk_test_c2tfZXhhbXBsZV9zZWNyZXRfa2V5X2Zvcl9sb2NhbF9lMmVfb25seSEh",
+        },
       },
 });
