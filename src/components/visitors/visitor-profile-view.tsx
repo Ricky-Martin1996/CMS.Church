@@ -779,9 +779,16 @@ function ConvertDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (v) setError(null);
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="glow" className="min-h-11">
           Convert to member
@@ -793,11 +800,17 @@ function ConvertDialog({
           This will create a member record from this visitor profile and mark
           their journey as complete. This action cannot be undone.
         </p>
+        {error && (
+          <p className="mt-3 text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
         <div className="mt-6 flex gap-2">
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
             className="min-h-11"
+            disabled={pending}
           >
             Cancel
           </Button>
@@ -806,7 +819,12 @@ function ConvertDialog({
             className="min-h-11"
             onClick={() => {
               startTransition(async () => {
-                await convertVisitorToMemberAction(visitorId);
+                setError(null);
+                const res = await convertVisitorToMemberAction(visitorId);
+                if (!res.ok) {
+                  setError(res.error);
+                  return;
+                }
                 setOpen(false);
                 onDone();
               });
