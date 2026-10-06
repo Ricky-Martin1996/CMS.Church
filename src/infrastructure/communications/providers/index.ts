@@ -11,16 +11,20 @@ function stubResult(
   input: ProviderSendInput,
   reason: string
 ): ProviderSendResult {
+  // BUG-008: never report ok/SENT when nothing was delivered externally.
   return {
-    ok: true,
-    queued: false,
+    ok: false,
+    queued: true,
     provider,
     externalId: null,
+    error: reason,
     metadata: defaultProviderMetadata(provider, {
       reason,
       channel: input.channel,
       toEmail: input.toEmail ?? null,
       toPhone: input.toPhone ?? null,
+      configured: false,
+      queued: true,
     }),
   };
 }
@@ -34,13 +38,13 @@ export const resendProvider: CommunicationProvider = {
       return stubResult(
         HubProviderKind.RESEND,
         input,
-        "RESEND_API_KEY not configured; message queued locally"
+        "RESEND_API_KEY not configured; message not sent"
       );
     }
     return stubResult(
       HubProviderKind.RESEND,
       input,
-      "Resend adapter stub — wire SDK in production"
+      "Resend adapter stub — wire SDK in production; message not sent"
     );
   },
 };
@@ -53,13 +57,13 @@ export const twilioProvider: CommunicationProvider = {
       return stubResult(
         HubProviderKind.TWILIO,
         input,
-        "Twilio credentials not configured; message queued locally"
+        "Twilio credentials not configured; message not sent"
       );
     }
     return stubResult(
       HubProviderKind.TWILIO,
       input,
-      "Twilio adapter stub — wire SDK in production"
+      "Twilio adapter stub — wire SDK in production; message not sent"
     );
   },
 };
@@ -72,13 +76,13 @@ export const whatsappBusinessProvider: CommunicationProvider = {
       return stubResult(
         HubProviderKind.WHATSAPP_BUSINESS,
         input,
-        "WhatsApp Business token not configured; message queued locally"
+        "WhatsApp Business token not configured; message not sent"
       );
     }
     return stubResult(
       HubProviderKind.WHATSAPP_BUSINESS,
       input,
-      "WhatsApp Business adapter stub — wire API in production"
+      "WhatsApp Business adapter stub — wire API in production; message not sent"
     );
   },
 };
@@ -91,13 +95,13 @@ export const firebasePushProvider: CommunicationProvider = {
       return stubResult(
         HubProviderKind.FIREBASE,
         input,
-        "Firebase server key not configured; message queued locally"
+        "Firebase server key not configured; message not sent"
       );
     }
     return stubResult(
       HubProviderKind.FIREBASE,
       input,
-      "Firebase Push adapter stub — wire FCM in production"
+      "Firebase Push adapter stub — wire FCM in production; message not sent"
     );
   },
 };
